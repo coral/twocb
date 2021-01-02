@@ -18,12 +18,14 @@ function _internalRender() {
     _mapping.forEach((m) => {
         render(m);
     });
+
+    return _pixelBuffer;
 }
 
 function rgb(i, r, g, b) {
-    x[i * 3] = r;
-    x[i * 3 + 1] = g;
-    x[i * 3 + 2] = b;
+    _pixelBuffer[i * 3] = r;
+    _pixelBuffer[i * 3 + 1] = g;
+    _pixelBuffer[i * 3 + 2] = b;
 }
 
 function hsv(i, r, g, b) {}

@@ -7,6 +7,6 @@ function register() {
 
 function beforeRender() {}
 
-function render(index) {
-    return 3.0;
+function render(m) {
+    rgb(m.I, 1.0, 0.9, 0.2);
 }

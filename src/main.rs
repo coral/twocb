@@ -19,7 +19,7 @@ fn main() {
     p.load();
     p.setup();
     p.register();
-    //p.process()
+    p.process();
     // let t1 = thread::spawn(|| {
     //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
     //     p.load();
@@ -42,4 +42,6 @@ fn main() {
 
     // t1.join().unwrap();
     // t2.join().unwrap();
+
+    // patterns::dynamic::shutdown_runtime();
 }
