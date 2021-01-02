@@ -29,7 +29,8 @@ pub struct Pattern {
     loaded: Once,
     isolate: Option<v8::OwnedIsolate>,
     context: v8::Global<v8::Context>,
-    function: Option<v8::Global<v8::Function>>,
+    before_render: Option<v8::Global<v8::Function>>,
+    render: Option<v8::Global<v8::Function>>,
 }
 
 // static DENO_INIT: Once = Once::new();
@@ -54,7 +55,8 @@ impl Pattern {
             handle: "hello".to_string(),
             isolate: Some(isolate),
             context: global_context,
-            function: None,
+            before_render: None,
+            render: None,
         }
     }
 
@@ -64,38 +66,52 @@ impl Pattern {
         let code =
             fs::read_to_string(&self.filename).expect("Something went wrong reading the file");
         let isolate = self.isolate.as_mut().unwrap();
-        let scope = &mut v8::HandleScope::with_context(
-            isolate, &self.context);
+        let scope = &mut v8::HandleScope::with_context(isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         //Make a v8 string of the blah
         let code = v8::String::new(scope, &code).unwrap();
         let script = v8::Script::compile(scope, code, None).unwrap();
         //Execute script to load functions into memory
         script.run(scope).unwrap();
-        let fn_name = v8::String::new(scope, &self.handle).unwrap();
+
+        //RegisterParameters
+        let param = v8::String::new(scope, "register()").unwrap();
+        v8::Script::compile(scope, param, None);
+        let res = script.run(scope).unwrap();
+        let result = res.to_string(scope).unwrap();
+        println!("{}", result.to_rust_string_lossy(scope));
+
+        // Bind before render handle
+        let fn_name = v8::String::new(scope, "beforeRender").unwrap();
         let fn_value = context
             .global(scope)
             .get(scope, fn_name.into())
             .expect("missing function Process");
-        let function = v8::Local::<v8::Function>::try_from(fn_value)
-            .expect("function expected");
+        let function = v8::Local::<v8::Function>::try_from(fn_value).expect("function expected");
         let function_global_handle = v8::Global::new(scope, function);
-        self.function = Some(function_global_handle);
+        self.before_render = Some(function_global_handle);
+
+        // Bind render handle
+        let fn_name = v8::String::new(scope, "render").unwrap();
+        let fn_value = context
+            .global(scope)
+            .get(scope, fn_name.into())
+            .expect("missing function Process");
+        let function = v8::Local::<v8::Function>::try_from(fn_value).expect("function expected");
+        let function_global_handle = v8::Global::new(scope, function);
+        self.render = Some(function_global_handle);
     }
 
     pub fn process(&mut self) {
-        let scope = &mut v8::HandleScope::with_context(
-            self.isolate.as_mut().unwrap(), &self.context);
+        let scope =
+            &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
         let context: &v8::Context = self.context.borrow();
-        let function_global_handle = self.function.as_ref()
-            .expect("function not loaded");
+        let function_global_handle = self.render.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
 
         let name = v8::Number::new(scope, 5.0).into();
         let mut try_catch = &mut v8::TryCatch::new(scope);
-        let global = context
-            .global(try_catch)
-            .into();
+        let global = context.global(try_catch).into();
         let result = function.call(&mut try_catch, global, &[name]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();

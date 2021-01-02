@@ -15,26 +15,28 @@ fn main() {
     layer_manager.sm();
 
     patterns::dynamic::initalize_runtime();
-    let t1 = thread::spawn(|| {
-        let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
-        p.load();
-        let now = Instant::now();
-        for _ in 0..10000000 {
-            p.process();
-        }
-        println!("{}", now.elapsed().as_millis());
-    });
+    let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+    p.load();
+    // let t1 = thread::spawn(|| {
+    //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+    //     p.load();
+    //     let now = Instant::now();
+    //     for _ in 0..10000000 {
+    //         p.process();
+    //     }
+    //     println!("{}", now.elapsed().as_millis());
+    // });
 
-    let t2 = thread::spawn(|| {
-        let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
-        p.load();
-        let now = Instant::now();
-        for _ in 0..10000000 {
-            p.process();
-        }
-        println!("{}", now.elapsed().as_millis());
-    });
+    // let t2 = thread::spawn(|| {
+    //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+    //     p.load();
+    //     let now = Instant::now();
+    //     for _ in 0..10000000 {
+    //         p.process();
+    //     }
+    //     println!("{}", now.elapsed().as_millis());
+    // });
 
-    t1.join().unwrap();
-    t2.join().unwrap();
+    // t1.join().unwrap();
+    // t2.join().unwrap();
 }
