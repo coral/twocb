@@ -8,15 +8,18 @@ use std::time::{Duration, Instant};
 
 fn main() {
     println!("Hello, world!");
-    //dbg!(pixels::Mapping::load_from_file("files/mappings/v6.json"));
+    let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
     //data::init();
 
     let mut layer_manager = layers::Manager::new();
     layer_manager.sm();
 
     patterns::dynamic::initalize_runtime();
-    let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+    let mut p = patterns::dynamic::Pattern::create("examples/fn2.js", map.clone());
     p.load();
+    p.setup();
+    p.register();
+    //p.process()
     // let t1 = thread::spawn(|| {
     //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
     //     p.load();
