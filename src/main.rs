@@ -15,7 +15,7 @@ fn main() {
     layer_manager.sm();
 
     patterns::dynamic::initalize_runtime();
-    thread::spawn(|| {
+    let t1 = thread::spawn(|| {
         let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
         p.load();
         let now = Instant::now();
@@ -25,7 +25,7 @@ fn main() {
         println!("{}", now.elapsed().as_millis());
     });
 
-    let handle = thread::spawn(|| {
+    let t2 = thread::spawn(|| {
         let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
         p.load();
         let now = Instant::now();
@@ -35,5 +35,6 @@ fn main() {
         println!("{}", now.elapsed().as_millis());
     });
 
-    handle.join().unwrap();
+    t1.join().unwrap();
+    t2.join().unwrap();
 }
