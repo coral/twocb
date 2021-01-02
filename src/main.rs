@@ -15,21 +15,21 @@ fn main() {
     layer_manager.sm();
 
     patterns::dynamic::initalize_runtime();
+    // let mut p = patterns::dynamic::Pattern::create("examples/fn2.js", map.clone());
+    // p.load();
+    // p.setup();
+    // p.register();
+
+    // p.process();
     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js", map.clone());
     p.load();
     p.setup();
     p.register();
-    p.process();
-    // let t1 = thread::spawn(|| {
-    //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
-    //     p.load();
-    //     let now = Instant::now();
-    //     for _ in 0..10000000 {
-    //         p.process();
-    //     }
-    //     println!("{}", now.elapsed().as_millis());
-    // });
-
+    let now = Instant::now();
+    for _ in 0..10000000 {
+        p.process();
+    }
+    println!("{}", now.elapsed().as_millis());
     // let t2 = thread::spawn(|| {
     //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
     //     p.load();
@@ -40,7 +40,6 @@ fn main() {
     //     println!("{}", now.elapsed().as_millis());
     // });
 
-    // t1.join().unwrap();
     // t2.join().unwrap();
 
     // patterns::dynamic::shutdown_runtime();

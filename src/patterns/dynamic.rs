@@ -201,7 +201,7 @@ impl Pattern {
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
 
         //let m = result.unwrap().to_number(try_catch).unwrap();
-        dbg!(res);
+        // dbg!(res);
     }
 
     fn bind_function(
