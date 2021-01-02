@@ -1,6 +1,6 @@
 use notify::{watcher, RecursiveMode, Watcher};
 use rusty_v8 as v8;
-use std::borrow::BorrowMut;
+use std::borrow::Borrow;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::convert::TryFrom;
@@ -66,7 +66,7 @@ impl Pattern {
         let isolate = self.isolate.as_mut().unwrap();
         let scope = &mut v8::HandleScope::with_context(
             isolate, &self.context);
-        let context = v8::Local::new(scope, &self.context);
+        let context: &v8::Context = self.context.borrow();
         //Make a v8 string of the blah
         let code = v8::String::new(scope, &code).unwrap();
         let script = v8::Script::compile(scope, code, None).unwrap();
@@ -86,10 +86,10 @@ impl Pattern {
     pub fn process(&mut self) {
         let scope = &mut v8::HandleScope::with_context(
             self.isolate.as_mut().unwrap(), &self.context);
-        let context = v8::Local::new(scope, &self.context);
+        let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.function.as_ref()
             .expect("function not loaded");
-        let function = v8::Local::new(scope, function_global_handle);
+        let function: &v8::Function = function_global_handle.borrow();
 
         let name = v8::Number::new(scope, 5.0).into();
         let mut try_catch = &mut v8::TryCatch::new(scope);
