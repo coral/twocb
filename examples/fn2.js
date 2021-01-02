@@ -1,3 +1,3 @@
 function hello(a) {
-  return a + 300.0;
+  return a + 3.0;
 }

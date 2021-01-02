@@ -1,6 +1,10 @@
 mod data;
 mod layers;
+mod patterns;
 mod pixels;
+use std::thread;
+
+use std::time::{Duration, Instant};
 
 fn main() {
     println!("Hello, world!");
@@ -9,4 +13,27 @@ fn main() {
 
     let mut layer_manager = layers::Manager::new();
     layer_manager.sm();
+
+    patterns::dynamic::initalize_runtime();
+    thread::spawn(|| {
+        let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+        p.load();
+        let now = Instant::now();
+        for _ in 0..10000000 {
+            p.process();
+        }
+        println!("{}", now.elapsed().as_millis());
+    });
+
+    let handle = thread::spawn(|| {
+        let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
+        p.load();
+        let now = Instant::now();
+        for _ in 0..10000000 {
+            p.process();
+        }
+        println!("{}", now.elapsed().as_millis());
+    });
+
+    handle.join().unwrap();
 }
