@@ -28,6 +28,7 @@ pub struct Pattern {
     handle: String,
     loaded: Once,
     isolate: Option<v8::OwnedIsolate>,
+    context: v8::Global<v8::Context>,
     function: Option<v8::Global<v8::Function>>,
 }
 
@@ -46,32 +47,15 @@ impl Pattern {
             let context = v8::Context::new(handle_scope);
             global_context = v8::Global::new(handle_scope, context);
         }
-        isolate.set_slot(Rc::new(RefCell::new(JsRuntimeState {
-            global_context: Some(global_context),
-        })));
 
         Pattern {
             filename: filename.to_string(),
             loaded: Once::new(),
             handle: "hello".to_string(),
             isolate: Some(isolate),
+            context: global_context,
             function: None,
         }
-    }
-
-    pub(crate) fn state(isolate: &v8::Isolate) -> Rc<RefCell<JsRuntimeState>> {
-        let s = isolate.get_slot::<Rc<RefCell<JsRuntimeState>>>().unwrap();
-        s.clone()
-    }
-
-    pub(crate) fn global_context(&mut self) -> v8::Global<v8::Context> {
-        let state = Self::state(self.v8_isolate());
-        let state = state.borrow();
-        state.global_context.clone().unwrap()
-    }
-
-    pub(crate) fn v8_isolate(&mut self) -> &mut v8::OwnedIsolate {
-        self.isolate.as_mut().unwrap()
     }
 
     pub fn init(&mut self) {}
@@ -79,11 +63,10 @@ impl Pattern {
     pub fn load(&mut self) {
         let code =
             fs::read_to_string(&self.filename).expect("Something went wrong reading the file");
-        let context_global_handle = self.global_context();
         let isolate = self.isolate.as_mut().unwrap();
         let scope = &mut v8::HandleScope::with_context(
-            isolate, &context_global_handle);
-        let context = v8::Local::new(scope, &context_global_handle);
+            isolate, &self.context);
+        let context = v8::Local::new(scope, &self.context);
         //Make a v8 string of the blah
         let code = v8::String::new(scope, &code).unwrap();
         let script = v8::Script::compile(scope, code, None).unwrap();
@@ -101,10 +84,9 @@ impl Pattern {
     }
 
     pub fn process(&mut self) {
-        let context_global_handle = self.global_context();
         let scope = &mut v8::HandleScope::with_context(
-            self.isolate.as_mut().unwrap(), &context_global_handle);
-        let context = v8::Local::new(scope, &context_global_handle);
+            self.isolate.as_mut().unwrap(), &self.context);
+        let context = v8::Local::new(scope, &self.context);
         let function_global_handle = self.function.as_ref()
             .expect("function not loaded");
         let function = v8::Local::new(scope, function_global_handle);
