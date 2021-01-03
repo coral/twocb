@@ -157,10 +157,11 @@ impl Pattern {
             panic!("{}", exception_string);
         }
         let m = result.unwrap().to_rust_string_lossy(try_catch);
-        let v: Parameters = serde_json::from_str(&m).unwrap();
+        dbg!(m);
+        //let v: Parameters = serde_json::from_str(&m).unwrap();
     }
 
-    pub fn process(&mut self) {
+    pub fn process(&mut self) -> Vec<f64> {
         let scope =
             &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
         let context: &v8::Context = self.context.borrow();
@@ -199,6 +200,26 @@ impl Pattern {
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
+        //let mut m = vec![0; res.byte_length()];
+
+        let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
+        let copied = unsafe {
+            let ptr = v.as_mut_ptr();
+            let slice = std::slice::from_raw_parts_mut(
+                ptr as *mut u8,
+                v.len() * std::mem::size_of::<f64>(),
+            );
+            res.copy_contents(slice)
+        };
+
+        return v;
+
+        //dbg!(v);
+        //dbg!(m);
+        //let ar = res.buffer(try_catch).unwrap().get_backing_store();
+        //let br = ar.clone();
+        //res.copy_contents()
+        //dbg!(res.length());
 
         //let m = result.unwrap().to_number(try_catch).unwrap();
         // dbg!(res);

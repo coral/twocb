@@ -26,10 +26,16 @@ fn main() {
     p.setup();
     p.register();
     let now = Instant::now();
-    for _ in 0..10000000 {
-        p.process();
+    let invocations = 10000;
+    for _ in 0..invocations {
+        let mut m = p.process();
+        m[0] = 1.0;
     }
-    println!("{}", now.elapsed().as_millis());
+    println!(
+        "Time: {}ms, {} invocations per second,",
+        now.elapsed().as_millis(),
+        invocations as f64 / (now.elapsed().as_millis() as f64 / 1000.)
+    );
     // let t2 = thread::spawn(|| {
     //     let mut p = patterns::dynamic::Pattern::create("examples/fn2.js");
     //     p.load();
