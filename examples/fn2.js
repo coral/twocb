@@ -44,5 +44,5 @@ function beforeRender(delta) {
 function render(index) {
     v = pixels[index];
     v = v * v * v;
-    rgb(index, hue, saturation, v);
+    hsv(index, hue, saturation, v);
 }

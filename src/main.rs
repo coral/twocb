@@ -1,3 +1,4 @@
+#![feature(test)]
 mod data;
 mod layers;
 mod patterns;
@@ -25,11 +26,12 @@ fn main() {
     p.load();
     p.setup();
     p.register();
+    // p.process();
     let now = Instant::now();
     let invocations = 10000;
     for _ in 0..invocations {
         let mut m = p.process();
-        m[0] = 1.0;
+        std::hint::black_box(m);
     }
     println!(
         "Time: {}ms, {} invocations per second,",

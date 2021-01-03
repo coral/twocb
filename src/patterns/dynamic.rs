@@ -64,6 +64,9 @@ struct Parameters {
 //     dbg!(a);
 // }
 
+// if we _dont_ want to make copies, we could just create the vec in rust,
+//build a float64array around the vec's storage, and pass the array into js to have it fill the array
+
 impl Pattern {
     pub fn create(filename: &str, mapping: std::vec::Vec<pixels::Pixel>) -> Self {
         let mut isolate = v8::Isolate::new(v8::CreateParams::default());
@@ -168,27 +171,17 @@ impl Pattern {
         let function_global_handle = self.render.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
 
-        //let mapping = v8::Float64Array::new();
-
-        // let mut baked: Vec<f64> = Vec::new();
-
-        // for x in &self.mapping {
-        //     baked.push(x.coordinate[0]);
-        //     baked.push(x.coordinate[1]);
-        //     baked.push(x.coordinate[2]);
-        // }
-
-        // // dbg!(baked);
-        // baked.
-
         // let buf = v8::ArrayBuffer::new_backing_store_from_boxed_slice(baked.into_boxed_slice())
 
         //        let mapping = v8::Float64Array::new(scope, baked, 0, 0);
 
-        let name = v8::Number::new(scope, 5.0).into();
+        //let name = v8::Number::new(scope, 5.0).into();
+
+        //let pixelbuffer: Vec<f64> = vec![0., self.mapping.len()];
+
         let mut try_catch = &mut v8::TryCatch::new(scope);
         let global = context.global(try_catch).into();
-        let result = function.call(&mut try_catch, global, &[name]);
+        let result = function.call(&mut try_catch, global, &[]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();
             let exception_string = exception
@@ -200,7 +193,16 @@ impl Pattern {
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
-        //let mut m = vec![0; res.byte_length()];
+        // let backing = res.buffer(try_catch).unwrap().get_backing_store();
+        // let slice: &[f64] = unsafe {
+        //     let ptr = backing.data().offset(res.byte_offset() as isize);
+        //     let len = res.byte_length();
+        //     std::slice::from_raw_parts(ptr as *const f64, len / std::mem::size_of::<f64>())
+        // };
+
+        // return slice;
+        // dbg!(slice);
+        // let mut m = vec![0; res.byte_length()];
 
         let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
         let copied = unsafe {
@@ -213,16 +215,6 @@ impl Pattern {
         };
 
         return v;
-
-        //dbg!(v);
-        //dbg!(m);
-        //let ar = res.buffer(try_catch).unwrap().get_backing_store();
-        //let br = ar.clone();
-        //res.copy_contents()
-        //dbg!(res.length());
-
-        //let m = result.unwrap().to_number(try_catch).unwrap();
-        // dbg!(res);
     }
 
     fn bind_function(
