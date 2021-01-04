@@ -17,7 +17,7 @@ function _internalRender() {
     }
 
     _mapping.forEach((m) => {
-        render(m);
+        render(m.I);
     });
 
     return _pixelBuffer;
