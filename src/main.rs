@@ -12,14 +12,24 @@ use tokio::task;
 
 use std::time::{Duration, Instant};
 
-#[tokio::main]
-pub async fn main() {
+//#[tokio::main]
+pub fn main() {
     env::set_var("RUST_LOG", "trace");
     pretty_env_logger::init();
     let map = Arc::new(pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap());
 
-    let mut input = audio::AudioInput::new(48000, 256);
-    input.start();
+    // let join = task::spawn(async {
+    let mut input = audio::AudioInput::new(48_000, 512, 1);
+    //input.start();
+    let mut audioprocessing = audio::Processing::new();
+    audioprocessing.run(&mut input);
+    //});
+
+    //    join.await;
+
+    //std::thread::sleep(std::time::Duration::from_secs(10));
+
+    //input.start();
 
     //data::init();
 

@@ -9,11 +9,11 @@ license = "MIT"
 
 [dependencies]
 cpal = "0.13.1"
-env_logger = "0.8.2"
 log = "0.4.11"
 notify = "4.0.15"
 pickledb = "0.4.1"
 pretty_env_logger = "0.4.0"
+ringbuf = "0.2.2"
 rusty_v8 = "0.15.0"
 serde = { version = "1.0.118", features = ["derive"] }
 serde_json = "1.0.61"
