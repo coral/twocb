@@ -48,7 +48,7 @@ impl AudioInput {
         let stream = device.build_input_stream(
             config,
             move |data: &[f32], inp: &cpal::InputCallbackInfo| {
-                dbg!(data);
+                //dbg!(data);
             },
             err_fn,
         );
