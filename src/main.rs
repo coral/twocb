@@ -4,10 +4,12 @@ mod layers;
 mod patterns;
 mod pixels;
 mod producer;
+use std::{thread, time};
 
 use log;
 use std::env;
 use std::sync::Arc;
+use tokio::join;
 use tokio::task;
 
 use std::time::{Duration, Instant};
@@ -18,13 +20,27 @@ pub async fn main() {
     pretty_env_logger::init();
     let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
 
-    let join = task::spawn(async {
-        let mut input = audio::AudioInput::new(48_000, 512, 1);
-        let mut audioprocessing = audio::Processing::new();
-        audioprocessing.run(&mut input);
+    let audiosetting = audio::StreamSetting {
+        sample_rate: 48_000,
+        buffer_size: 512,
+        channels: 1,
+    };
+    let mut input = audio::Input::new(audiosetting);
+    let stream = input.start();
+
+    let stream_processing = stream.clone();
+    let ap = task::spawn(async move {
+        let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
+        audioprocessing.run();
     });
 
-    join.await;
+    let stream_colorchord = stream.clone();
+    let cr = task::spawn(async move {
+        let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
+        colorchord.run();
+    });
+
+    join!(ap, cr);
 
     //std::thread::sleep(std::time::Duration::from_secs(10));
 
