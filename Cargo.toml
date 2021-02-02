@@ -9,6 +9,7 @@ license = "MIT"
 
 [dependencies]
 cpal = "0.13.1"
+crossbeam-channel = "0.5.0"
 log = "0.4.11"
 notify = "4.0.15"
 pickledb = "0.4.1"

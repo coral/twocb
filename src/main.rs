@@ -20,7 +20,6 @@ pub async fn main() {
 
     let join = task::spawn(async {
         let mut input = audio::AudioInput::new(48_000, 512, 1);
-        input.start();
         let mut audioprocessing = audio::Processing::new();
         audioprocessing.run(&mut input);
     });
