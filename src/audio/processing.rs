@@ -35,8 +35,8 @@ impl Processing {
             let tempodata = self.tempo.do_result(audiodata).unwrap();
 
             if tempodata > 0.0 {
-                println!("Tempo: {:?}", self.tempo.get_bpm());
-                println!("Confidence: {:?}", self.tempo.get_confidence());
+                // println!("Tempo: {:?}", self.tempo.get_bpm());
+                // println!("Confidence: {:?}", self.tempo.get_confidence());
             }
         }
     }

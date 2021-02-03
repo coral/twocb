@@ -28,30 +28,34 @@ pub async fn main() {
     let mut input = audio::Input::new(audiosetting);
     let stream = input.start();
 
-    let stream_processing = stream.clone();
-    let ap = task::spawn(async move {
-        let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
-        audioprocessing.run();
-    });
+    // let stream_processing = stream.clone();
+    // let ap = task::spawn(async move {
+    //     let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
+    //     audioprocessing.run();
+    // });
 
     let stream_colorchord = stream.clone();
+    let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
+    let colorchord_channel = colorchord.channel();
     let cr = task::spawn(async move {
-        let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
         colorchord.run();
     });
 
-    join!(ap, cr);
+    //join!(ap, cr);
 
     //std::thread::sleep(std::time::Duration::from_secs(10));
 
     //input.start();
 
     //data::init();
-
-    // let mut prod = producer::Producer::new(200.0);
+    let mut prod = producer::Producer::new(60.0);
+    prod.attach_colorchord(colorchord_channel);
+    let p = prod.start();
 
     // let run = prod.start();
     // run.await;
+
+    join!(p);
 
     // let mut layer_manager = layers::Manager::new();
     // layer_manager.sm();
