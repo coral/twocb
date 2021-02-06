@@ -74,7 +74,7 @@ pub async fn main() {
     // let mut layer_manager = layers::Manager::new();
     // layer_manager.sm();
 
-    patterns::dynamic::initalize_runtime();
+    //patterns::dynamic::initalize_runtime();
 
     // let join = task::spawn(async {
     //     let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
@@ -84,10 +84,10 @@ pub async fn main() {
     //     p.register();
     //     p.process()
     // });
-    let mut p = patterns::dynamic::Pattern::create("examples/debug.js", map.clone());
-    p.load();
-    p.setup();
-    p.register();
+    // let mut p = patterns::dynamic::Pattern::create("examples/debug.js", map.clone());
+    // p.load();
+    // p.setup();
+    // p.register();
     // let result = join.await;
     // dbg!(result);
     // let now = Instant::now();

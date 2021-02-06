@@ -116,6 +116,7 @@ impl Pattern {
     }
 
     pub fn setup(&mut self) {
+        //Loads in mapping into JS
         let scope =
             &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
         let context: &v8::Context = self.context.borrow();
@@ -141,6 +142,7 @@ impl Pattern {
     }
 
     pub fn register(&mut self) {
+        //Binds JS function
         let scope =
             &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
         let context: &v8::Context = self.context.borrow();
