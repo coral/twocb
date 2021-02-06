@@ -1,5 +1,5 @@
 use crate::audio;
-use aubio_rs::{Onset, Tempo};
+use aubio_rs::{Onset, Tempo, FFT};
 use std::rc::Rc;
 use std::time::Instant;
 use tokio::sync::watch;
@@ -9,6 +9,7 @@ pub struct Processing {
     stream_setting: audio::StreamSetting,
     tempo: Tempo,
     onset: Onset,
+    fft: FFT,
     //chan
     tempo_tx: tokio::sync::watch::Sender<TempoResult>,
     tempo_rx: tokio::sync::watch::Receiver<TempoResult>,
@@ -42,6 +43,7 @@ impl Processing {
         Processing {
             stream_setting,
             dr,
+            //TEMPO
             tempo: Tempo::new(
                 aubio_rs::OnsetMode::SpecFlux,
                 stream_setting.buffer_size as usize,
@@ -49,6 +51,8 @@ impl Processing {
                 stream_setting.sample_rate,
             )
             .unwrap(),
+
+            //ONSET
             onset: Onset::new(
                 aubio_rs::OnsetMode::SpecFlux,
                 stream_setting.buffer_size as usize,
@@ -56,6 +60,11 @@ impl Processing {
                 stream_setting.sample_rate,
             )
             .unwrap(),
+
+            //FFT
+            fft: FFT::new(256).unwrap(),
+
+            //Channel stuff
             tempo_tx: tempo_tx,
             tempo_rx: tempo_rx,
 
@@ -93,6 +102,9 @@ impl Processing {
             if onsetdata > 0.0 {
                 self.onset_tx.send(onsetdata).unwrap();
             }
+
+            //FFT
+            //let fftdata = self.fft.do_(input: I, spectrum: O)
         }
     }
 }
