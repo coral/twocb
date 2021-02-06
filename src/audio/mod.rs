@@ -5,6 +5,7 @@ pub mod processing;
 pub use colorchord::Colorchord;
 pub use input::Input;
 pub use processing::Processing;
+pub use processing::TempoResult;
 
 #[derive(Debug, Copy, Clone)]
 pub struct StreamSetting {

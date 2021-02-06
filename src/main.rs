@@ -10,6 +10,7 @@ use log;
 use std::env;
 use std::sync::Arc;
 use tokio::join;
+use tokio::sync::oneshot;
 use tokio::task;
 
 use std::time::{Duration, Instant};
@@ -22,17 +23,28 @@ pub async fn main() {
 
     let audiosetting = audio::StreamSetting {
         sample_rate: 48_000,
-        buffer_size: 512,
+        buffer_size: 1024,
         channels: 1,
     };
     let mut input = audio::Input::new(audiosetting);
     let stream = input.start();
 
-    // let stream_processing = stream.clone();
-    // let ap = task::spawn(async move {
-    //     let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
-    //     audioprocessing.run();
-    // });
+    //Aubio
+
+    let stream_processing = stream.clone();
+    let (tempop, tempoc) = oneshot::channel();
+    let (onsetp, onsetc) = oneshot::channel();
+    let ap = task::spawn(async move {
+        let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
+        tempop.send(audioprocessing.tempo_channel()).unwrap();
+        onsetp.send(audioprocessing.onset_channel()).unwrap();
+        audioprocessing.run();
+    });
+
+    let tempo_channel = tempoc.await.unwrap();
+    let onset_channel = onsetc.await.unwrap();
+
+    //Colorchord
 
     let stream_colorchord = stream.clone();
     let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
@@ -50,6 +62,8 @@ pub async fn main() {
     //data::init();
     let mut prod = producer::Producer::new(60.0);
     prod.attach_colorchord(colorchord_channel);
+    prod.attach_tempo(tempo_channel);
+    prod.attach_onset(onset_channel);
     let p = prod.start();
 
     // let run = prod.start();

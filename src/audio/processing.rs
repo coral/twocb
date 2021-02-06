@@ -1,12 +1,28 @@
 use crate::audio;
 use aubio_rs::{Onset, Tempo};
-use rustchord;
+use std::rc::Rc;
+use std::time::Instant;
+use tokio::sync::watch;
 
 pub struct Processing {
     dr: crossbeam_channel::Receiver<Vec<f32>>,
     stream_setting: audio::StreamSetting,
-
     tempo: Tempo,
+    onset: Onset,
+    //chan
+    tempo_tx: tokio::sync::watch::Sender<TempoResult>,
+    tempo_rx: tokio::sync::watch::Receiver<TempoResult>,
+
+    onset_tx: tokio::sync::watch::Sender<f32>,
+    onset_rx: tokio::sync::watch::Receiver<f32>,
+}
+
+#[derive(Debug)]
+pub struct TempoResult {
+    bpm: f32,
+    confidence: f32,
+    period: f32,
+    time: Instant,
 }
 
 impl Processing {
@@ -14,17 +30,46 @@ impl Processing {
         stream_setting: audio::StreamSetting,
         dr: crossbeam_channel::Receiver<Vec<f32>>,
     ) -> Processing {
+        let (tempo_tx, mut tempo_rx) = watch::channel(TempoResult {
+            bpm: 0.0,
+            confidence: 0.0,
+            period: 0.0,
+            time: Instant::now(),
+        });
+
+        let (onset_tx, mut onset_rx) = watch::channel(0.0);
+
         Processing {
             stream_setting,
             dr,
             tempo: Tempo::new(
                 aubio_rs::OnsetMode::SpecFlux,
                 stream_setting.buffer_size as usize,
-                256,
+                512,
                 stream_setting.sample_rate,
             )
             .unwrap(),
+            onset: Onset::new(
+                aubio_rs::OnsetMode::SpecFlux,
+                stream_setting.buffer_size as usize,
+                512,
+                stream_setting.sample_rate,
+            )
+            .unwrap(),
+            tempo_tx: tempo_tx,
+            tempo_rx: tempo_rx,
+
+            onset_tx: onset_tx,
+            onset_rx: onset_rx,
         }
+    }
+
+    pub fn tempo_channel(&self) -> tokio::sync::watch::Receiver<TempoResult> {
+        return self.tempo_rx.clone();
+    }
+
+    pub fn onset_channel(&self) -> tokio::sync::watch::Receiver<f32> {
+        return self.onset_rx.clone();
     }
 
     pub fn run(&mut self) {
@@ -32,11 +77,21 @@ impl Processing {
             let audiodata = self.dr.recv().unwrap();
 
             ///TEMPO
-            let tempodata = self.tempo.do_result(audiodata).unwrap();
-
+            let tempodata = self.tempo.do_result(&audiodata).unwrap();
             if tempodata > 0.0 {
-                // println!("Tempo: {:?}", self.tempo.get_bpm());
-                // println!("Confidence: {:?}", self.tempo.get_confidence());
+                let t = TempoResult {
+                    bpm: self.tempo.get_bpm(),
+                    confidence: self.tempo.get_confidence(),
+                    period: self.tempo.get_period_s(),
+                    time: Instant::now(),
+                };
+                self.tempo_tx.send(t).unwrap();
+            }
+
+            //ONSET
+            let onsetdata = self.onset.do_result(&audiodata).unwrap();
+            if onsetdata > 0.0 {
+                self.onset_tx.send(onsetdata).unwrap();
             }
         }
     }

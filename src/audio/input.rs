@@ -42,8 +42,6 @@ impl Input {
             sample_rate: cpal::SampleRate(self.stream_settings.sample_rate),
         };
 
-        dbg!(config);
-
         let err_fn = move |err| {
             error!("Error on audio input stream: {}", err);
         };

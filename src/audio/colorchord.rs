@@ -39,6 +39,7 @@ impl Colorchord {
     pub fn channel(&self) -> tokio::sync::watch::Receiver<NoteResult> {
         return self.rx.clone();
     }
+
     pub fn run(&mut self) {
         loop {
             let audiodata = self.dr.recv().unwrap();
