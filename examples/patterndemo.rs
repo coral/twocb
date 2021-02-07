@@ -6,5 +6,9 @@ fn main() {
     rse.bootstrap().unwrap();
 
     rse.hello();
-    // dbg!(rse.list());
+    let patterns = rse.list();
+
+    for i in patterns.iter() {
+        println!("{:?}", i.name());
+    }
 }

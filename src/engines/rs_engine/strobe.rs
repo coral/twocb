@@ -1,8 +1,8 @@
-use crate::engines::Pattern;
+use crate::engines::pattern;
 pub struct Strobe {}
 
-impl Pattern for Strobe {
-    fn name() -> &str {
-        return "strobe";
+impl pattern::Pattern for Strobe {
+    fn name(self) -> String {
+        return "strobe".to_string();
     }
 }
