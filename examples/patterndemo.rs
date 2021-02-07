@@ -6,5 +6,5 @@ fn main() {
     rse.bootstrap().unwrap();
 
     rse.hello();
-    dbg!(rse.list());
+    // dbg!(rse.list());
 }

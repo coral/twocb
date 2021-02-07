@@ -1,4 +1,4 @@
 //#[derive(Debug)]
 pub trait Pattern {
-    fn name() -> &str;
+    fn name() -> &'static str;
 }

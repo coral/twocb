@@ -8,16 +8,16 @@ impl engines::Engine for RSEngine {
         Ok(())
     }
 
-    fn list(&mut self) -> Vec<engines::Pattern> {
-        vec![
-            engines::Pattern {
-                name: "first pattern".to_string(),
-            },
-            engines::Pattern {
-                name: "second pattern".to_string(),
-            },
-        ]
-    }
+    // fn list(&mut self) -> Vec<engines::Pattern> {
+    //     vec![
+    //         engines::Pattern {
+    //             name: "first pattern".to_string(),
+    //         },
+    //         engines::Pattern {
+    //             name: "second pattern".to_string(),
+    //         },
+    //     ]
+    // }
 }
 
 impl RSEngine {
