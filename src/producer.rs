@@ -10,6 +10,9 @@ pub struct Producer {
     colorchord_channel: Option<tokio::sync::watch::Receiver<audio::colorchord::NoteResult>>,
     tempo_channel: Option<tokio::sync::watch::Receiver<audio::TempoResult>>,
     onset_channel: Option<tokio::sync::watch::Receiver<f32>>,
+
+    colorchord_data: audio::colorchord::NoteResult,
+    tempo_data: audio::TempoResult,
 }
 
 impl Producer {
@@ -17,36 +20,48 @@ impl Producer {
         Producer {
             framerate,
             index: 0,
-            ticker: time::interval(Duration::from_millis((1000. / framerate) as u64)),
+            ticker: tokio::time::interval(Duration::from_millis((1000. / framerate) as u64)),
+
             colorchord_channel: None,
             tempo_channel: None,
             onset_channel: None,
+
+            colorchord_data: audio::Colorchord::get_empty(),
+            tempo_data: audio::Processing::get_empty(),
         }
     }
     pub async fn start(&mut self) {
         loop {
-            // self.ticker.tick().await;
             tokio::select! {
-                val = self.colorchord_channel.as_mut().unwrap().changed()
+                _val = self.colorchord_channel.as_mut().unwrap().changed()
                 ,if self.colorchord_channel.is_some() => {
                     let nw = self.colorchord_channel.as_ref().unwrap().borrow();
-                   // dbg!(nw);
-
+                    self.colorchord_data = nw.clone();
                 }
 
-                val = self.tempo_channel.as_mut().unwrap().changed()
+                _val = self.tempo_channel.as_mut().unwrap().changed()
                 , if self.tempo_channel.is_some() => {
                     let nw = self.tempo_channel.as_ref().unwrap().borrow();
-                    dbg!(&*nw);
+                    self.tempo_data = nw.clone();
                 }
 
-                val = self.onset_channel.as_mut().unwrap().changed()
+                _val = self.onset_channel.as_mut().unwrap().changed()
                 , if self.onset_channel.is_some() => {
                     let nw = self.onset_channel.as_ref().unwrap().borrow();
                     println!("ONSET: {:.1}", *nw);
                 }
+
+                _tick = self.ticker.tick() => {
+                    self.produce().await;
+                }
             }
         }
+    }
+
+    //Internal
+
+    async fn produce(&mut self) {
+        dbg!(&self.colorchord_data);
     }
 
     //Attach channels

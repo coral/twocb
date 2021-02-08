@@ -2,7 +2,9 @@ use crate::engines::pattern;
 pub struct Strobe {}
 
 impl pattern::Pattern for Strobe {
-    fn name(self) -> String {
+    fn name(&self) -> String {
         return "strobe".to_string();
     }
+
+    fn init(&self) {}
 }

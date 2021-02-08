@@ -12,7 +12,7 @@ pub struct Colorchord {
     rx: tokio::sync::watch::Receiver<NoteResult>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NoteResult {
     notes: Vec<rustchord::Note>,
     folded: Vec<f32>,
@@ -36,6 +36,13 @@ impl Colorchord {
         }
     }
 
+    pub fn get_empty() -> NoteResult {
+        NoteResult {
+            notes: Vec::new(),
+            folded: Vec::new(),
+        }
+    }
+
     pub fn channel(&self) -> tokio::sync::watch::Receiver<NoteResult> {
         return self.rx.clone();
     }
@@ -48,7 +55,7 @@ impl Colorchord {
                 notes: self.nf.get_notes(),
                 folded: self.nf.get_folded().to_owned(),
             };
-            self.tx.send(m);
+            self.tx.send(m).unwrap();
         }
     }
 }

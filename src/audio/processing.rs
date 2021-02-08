@@ -18,7 +18,7 @@ pub struct Processing {
     onset_rx: tokio::sync::watch::Receiver<f32>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TempoResult {
     bpm: f32,
     confidence: f32,
@@ -70,6 +70,15 @@ impl Processing {
 
             onset_tx: onset_tx,
             onset_rx: onset_rx,
+        }
+    }
+
+    pub fn get_empty() -> TempoResult {
+        TempoResult {
+            bpm: 120.0,
+            confidence: 0.2,
+            period: 0.0,
+            time: Instant::now(),
         }
     }
 

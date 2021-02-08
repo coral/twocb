@@ -9,6 +9,7 @@ fn main() {
     let patterns = rse.list();
 
     for i in patterns.iter() {
-        println!("{:?}", i.name());
+        dbg!(i.name());
+        //println!("{:?}", i.name());
     }
 }
