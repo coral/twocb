@@ -10,7 +10,7 @@ impl engines::Engine for RSEngine {
         Ok(())
     }
 
-    fn list(&mut self) -> Vec<Box<engines::pattern::Pattern>> {
+    fn list(&mut self) -> Vec<Box<dyn engines::pattern::Pattern>> {
         vec![Box::new(strobe::Strobe {})]
     }
 

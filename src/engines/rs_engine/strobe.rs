@@ -6,5 +6,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn init(&self) {}
+    fn frame(&self) {}
+
+    fn process(&self) {}
 }
