@@ -15,6 +15,8 @@ pub struct Producer {
     tempo_data: audio::TempoResult,
 }
 
+pub struct Frame {}
+
 impl Producer {
     pub fn new(framerate: f64) -> Producer {
         Producer {
