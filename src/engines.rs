@@ -3,6 +3,8 @@ pub mod rs_engine;
 
 pub use rs_engine::RSEngine;
 
+pub use pattern::Pattern;
+
 use anyhow::Result;
 
 pub trait Engine {

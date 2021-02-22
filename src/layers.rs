@@ -1,3 +1,7 @@
+use twocb::engines::Pattern;
+
+pub mod blending;
+
 pub struct Manager {}
 
 impl Manager {
@@ -10,14 +14,14 @@ impl Manager {
     pub fn render(&mut self) {}
 }
 
-struct Link<'sl> {
-    step: &'sl dyn Step,
+struct Link {
+    step: Box<dyn Pattern>,
     parmeters: Vec<String>,
 }
 
-pub trait Step {
-    fn init(&self);
-    fn query_parameters(&self) -> Vec<String>;
-    fn query_requirements(&self);
-    fn render(&self);
-}
+// pub trait Step {
+//     fn init(&self);
+//     fn query_parameters(&self) -> Vec<String>;
+//     fn query_requirements(&self);
+//     fn render(&self);
+// }
