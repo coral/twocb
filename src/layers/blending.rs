@@ -1,6 +1,7 @@
 use vecmath;
 
 mod add;
+mod screen;
 
 pub enum BlendModes {
     Add,
