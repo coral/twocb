@@ -4,6 +4,7 @@ mod add;
 mod screen;
 mod subtract;
 
+#[derive(Clone, Copy)]
 pub enum BlendModes {
     Add,
     Subtract,
@@ -12,10 +13,10 @@ pub enum BlendModes {
 
 pub fn blend(
     mode: BlendModes,
-    op1: Vec<vecmath::Vector3<f64>>,
-    op2: Vec<vecmath::Vector3<f64>>,
+    op1: Vec<vecmath::Vector4<f64>>,
+    op2: Vec<vecmath::Vector4<f64>>,
     value: f64,
-) -> Vec<vecmath::Vector3<f64>> {
+) -> Vec<vecmath::Vector4<f64>> {
     match mode {
         BlendModes::Add => {
             return add::add(op1, op2);

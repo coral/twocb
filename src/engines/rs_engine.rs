@@ -1,5 +1,6 @@
 use crate::engines;
 use anyhow::Result;
+use std::sync::Arc;
 
 mod strobe;
 
@@ -10,8 +11,8 @@ impl engines::Engine for RSEngine {
         Ok(())
     }
 
-    fn list(&mut self) -> Vec<Box<dyn engines::pattern::Pattern>> {
-        vec![Box::new(strobe::Strobe {})]
+    fn list(&mut self) -> Vec<Arc<dyn engines::pattern::Pattern>> {
+        vec![Arc::new(strobe::Strobe {})]
     }
 
     // fn list(&mut self) -> Vec<engines::Pattern> {

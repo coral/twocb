@@ -6,5 +6,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn process(&self) {}
+    fn process(&self) -> Vec<vecmath::Vector4<f64>> {
+        return vec![[1.0; 4]; 100];
+    }
 }
