@@ -2,23 +2,28 @@ mod audio;
 mod data;
 mod engines;
 mod layers;
+mod output;
 mod patterns;
 mod pixels;
 mod producer;
+
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::{thread, time};
 
 use engines::Engine;
 use log;
 use std::env;
-use std::sync::Arc;
-use tokio::join;
-use tokio::sync::oneshot;
-use tokio::task;
 
 use std::time::{Duration, Instant};
 
 #[tokio::main]
 pub async fn main() {
+    let mut opc = output::OPCOutput::new(SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        7890,
+    ));
+    opc.connect().await;
+
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
     let patterns = rse.list();
