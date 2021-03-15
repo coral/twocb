@@ -1,7 +1,7 @@
 use crate::output;
+use log::{info, warn};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
 const SET_PIXEL_COLORS: u8 = 0x00;
@@ -18,7 +18,7 @@ impl output::Adapter for OPCOutput {
         self.buffer.clear();
         self.buffer.push(BROADCAST_CHANNEL);
         self.buffer.push(SET_PIXEL_COLORS);
-        (data.len() as u16).to_be_bytes().iter().for_each(|x| {
+        (data.len() as u16 * 3).to_be_bytes().iter().for_each(|x| {
             self.buffer.push(*x);
         });
         data.iter().for_each(|pixel| {
@@ -29,7 +29,10 @@ impl output::Adapter for OPCOutput {
 
         if let Some(ref s) = self.stream {
             {
-                s.clone().lock().unwrap().try_write(self.buffer.as_slice());
+                match s.clone().lock().unwrap().try_write(self.buffer.as_slice()) {
+                    Err(e) => warn!("Could not send OPC message with error: {}", e),
+                    _ => (),
+                }
             }
         }
     }
@@ -45,8 +48,9 @@ impl OPCOutput {
     }
 
     pub async fn connect(&mut self) -> anyhow::Result<()> {
-        let mut stream = TcpStream::connect(self.addr).await?;
+        let stream = TcpStream::connect(self.addr).await?;
         self.stream = Some(Arc::new(Mutex::new(stream)));
+        info!("Connected to OPC Server: {}", self.addr);
         Ok(())
     }
 }

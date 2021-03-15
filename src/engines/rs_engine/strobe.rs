@@ -7,6 +7,6 @@ impl pattern::Pattern for Strobe {
     }
 
     fn process(&self) -> Vec<vecmath::Vector4<f64>> {
-        return vec![[1.0; 4]; 100];
+        return vec![[0.0, 0.0, 1.0, 1.0]; 700];
     }
 }

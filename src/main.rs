@@ -13,19 +13,20 @@ use std::{thread, time};
 use engines::Engine;
 use log;
 use output::Adapter;
+use pretty_env_logger;
 use std::env;
 
 use std::time::{Duration, Instant};
 
 #[tokio::main]
 pub async fn main() {
+    env::set_var("RUST_LOG", "debug");
+    pretty_env_logger::init();
     let mut opc = output::OPCOutput::new(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         7890,
     ));
     opc.connect().await;
-
-    opc.write(vec![[1.0; 4]; 100]);
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
@@ -44,9 +45,8 @@ pub async fn main() {
 
     manager.add_link(lnk);
 
-    let mgr = manager.render();
-
-    mgr.await;
+    let rst = manager.render().await;
+    opc.write(rst)
 }
 // pub async fn main() {
 //     env::set_var("RUST_LOG", "trace");
