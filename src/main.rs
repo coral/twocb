@@ -12,6 +12,7 @@ use std::{thread, time};
 
 use engines::Engine;
 use log;
+use output::Adapter;
 use std::env;
 
 use std::time::{Duration, Instant};
@@ -23,6 +24,8 @@ pub async fn main() {
         7890,
     ));
     opc.connect().await;
+
+    opc.write(vec![[1.0; 4]; 100]);
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();

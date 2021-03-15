@@ -1,5 +1,6 @@
 use crate::output;
 use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
@@ -8,7 +9,7 @@ const BROADCAST_CHANNEL: u8 = 0x00;
 
 pub struct OPCOutput {
     addr: SocketAddr,
-    stream: Option<tokio::net::TcpStream>,
+    stream: Option<Arc<Mutex<tokio::net::TcpStream>>>,
     buffer: Vec<u8>,
 }
 
@@ -26,7 +27,11 @@ impl output::Adapter for OPCOutput {
             self.buffer.push((pixel[2].clamp(0.0, 1.0) * 255.) as u8);
         });
 
-        self.stream.unwrap().write_all(&self.buffer);
+        if let Some(ref s) = self.stream {
+            {
+                s.clone().lock().unwrap().try_write(self.buffer.as_slice());
+            }
+        }
     }
 }
 
@@ -41,7 +46,7 @@ impl OPCOutput {
 
     pub async fn connect(&mut self) -> anyhow::Result<()> {
         let mut stream = TcpStream::connect(self.addr).await?;
-        self.stream = Some(stream);
+        self.stream = Some(Arc::new(Mutex::new(stream)));
         Ok(())
     }
 }
