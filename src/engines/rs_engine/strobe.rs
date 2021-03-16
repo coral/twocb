@@ -8,7 +8,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn process(&self) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self) -> Vec<vecmath::Vector4<f64>> {
         let t = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -20,5 +20,9 @@ impl pattern::Pattern for Strobe {
 impl Strobe {
     pub fn new() -> Strobe {
         Strobe {}
+    }
+
+    pub fn name() -> String {
+        return "strobe".to_string();
     }
 }

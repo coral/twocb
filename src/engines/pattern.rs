@@ -4,5 +4,5 @@ use vecmath;
 pub trait Pattern {
     fn name(&self) -> String;
 
-    fn process(&self) -> Vec<vecmath::Vector4<f64>>;
+    fn process(&mut self) -> Vec<vecmath::Vector4<f64>>;
 }

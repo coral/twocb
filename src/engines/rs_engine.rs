@@ -11,9 +11,17 @@ impl engines::Engine for RSEngine {
         Ok(())
     }
 
-    fn list(&mut self) -> Vec<Arc<dyn engines::pattern::Pattern>> {
-        vec![Arc::new(strobe::Strobe::new())]
+    // fn list(&mut self) -> Vec<Arc<dyn engines::pattern::Pattern>> {
+    //     vec![Arc::new(strobe::Strobe::new())]
+    // }
+
+    fn list(&self) -> Vec<engines::PatternInfo> {
+        vec![engines::PatternInfo {
+            name: strobe::Strobe::name(),
+        }]
     }
+
+    fn instantiate_pattern(&self, name: String) -> Arc<dyn engines::pattern::Pattern> {}
 
     // fn list(&mut self) -> Vec<engines::Pattern> {
     //     vec![
