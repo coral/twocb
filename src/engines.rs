@@ -10,10 +10,6 @@ use anyhow::Result;
 
 pub trait Engine {
     fn bootstrap(&mut self) -> anyhow::Result<()>;
-    fn list(&self) -> Vec<PatternInfo>;
-    fn instantiate_pattern(&self, name: String) -> Arc<dyn pattern::Pattern>;
-}
-
-pub struct PatternInfo {
-    name: String,
+    fn list(&self) -> Vec<String>;
+    fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn pattern::Pattern>>;
 }

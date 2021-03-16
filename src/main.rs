@@ -32,10 +32,12 @@ pub async fn main() {
     rse.bootstrap().unwrap();
     let patterns = rse.list();
 
-    let pm = &patterns[0];
+    for n in patterns {
+        print!("{}", n);
+    }
 
     let mut stp = layers::Step {
-        pattern: pm.clone(),
+        pattern: rse.instantiate_pattern("strobe").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
@@ -45,7 +47,7 @@ pub async fn main() {
 
     manager.add_link(lnk);
 
-    let mut prod = producer::Producer::new(60.0);
+    let mut prod = producer::Producer::new(20.0);
     let mut framechan = prod.frame_channel();
     tokio::spawn(async move {
         tokio::join!(prod.start());

@@ -95,8 +95,8 @@ impl Link {
     }
 
     pub fn render(&mut self) -> Vec<vecmath::Vector4<f64>> {
-        for (i, stp) in self.steps.iter().enumerate() {
-            let mut out = stp.pattern.as_ref().process();
+        for (i, stp) in self.steps.iter_mut().enumerate() {
+            let mut out = stp.pattern.process();
             if i == 0 {
                 self.output = out
             } else {
@@ -109,7 +109,7 @@ impl Link {
 }
 
 pub struct Step {
-    pub pattern: Arc<dyn Pattern>,
+    pub pattern: Box<dyn Pattern>,
     pub blendmode: blending::BlendModes,
 }
 

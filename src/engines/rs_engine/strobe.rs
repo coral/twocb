@@ -1,7 +1,8 @@
 use crate::engines::pattern;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-pub struct Strobe {}
+pub struct Strobe {
+    lit: bool,
+}
 
 impl pattern::Pattern for Strobe {
     fn name(&self) -> String {
@@ -9,17 +10,20 @@ impl pattern::Pattern for Strobe {
     }
 
     fn process(&mut self) -> Vec<vecmath::Vector4<f64>> {
-        let t = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as f64;
-        return vec![[t.sin(), t.cos(), 1.0, 1.0]; 700];
+        let mut f = 0.0;
+        if self.lit {
+            f = 1.0;
+            self.lit = false;
+        } else {
+            self.lit = true;
+        }
+        return vec![[f, f, f, 1.0]; 864];
     }
 }
 
 impl Strobe {
     pub fn new() -> Strobe {
-        Strobe {}
+        Strobe { lit: false }
     }
 
     pub fn name() -> String {
