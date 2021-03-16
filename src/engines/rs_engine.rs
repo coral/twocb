@@ -12,7 +12,7 @@ impl engines::Engine for RSEngine {
     }
 
     fn list(&mut self) -> Vec<Arc<dyn engines::pattern::Pattern>> {
-        vec![Arc::new(strobe::Strobe {})]
+        vec![Arc::new(strobe::Strobe::new())]
     }
 
     // fn list(&mut self) -> Vec<engines::Pattern> {

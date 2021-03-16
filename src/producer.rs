@@ -1,5 +1,6 @@
 use crate::audio;
 use std::time::{Duration, Instant};
+use tokio::sync::watch;
 use tokio::time;
 
 pub struct Producer {
@@ -13,12 +14,16 @@ pub struct Producer {
 
     colorchord_data: audio::colorchord::NoteResult,
     tempo_data: audio::TempoResult,
+
+    frame_channel_tx: tokio::sync::watch::Sender<Frame>,
+    frame_channel_rx: tokio::sync::watch::Receiver<Frame>,
 }
 
 pub struct Frame {}
 
 impl Producer {
     pub fn new(framerate: f64) -> Producer {
+        let (tx, mut rx) = watch::channel(Frame {});
         Producer {
             framerate,
             index: 0,
@@ -30,28 +35,31 @@ impl Producer {
 
             colorchord_data: audio::Colorchord::get_empty(),
             tempo_data: audio::Processing::get_empty(),
+
+            frame_channel_tx: tx,
+            frame_channel_rx: rx,
         }
     }
     pub async fn start(&mut self) {
         loop {
             tokio::select! {
-                _val = self.colorchord_channel.as_mut().unwrap().changed()
-                ,if self.colorchord_channel.is_some() => {
-                    let nw = self.colorchord_channel.as_ref().unwrap().borrow();
-                    self.colorchord_data = nw.clone();
-                }
+                // _val = self.colorchord_channel.as_mut().unwrap().changed()
+                // ,if self.colorchord_channel.is_some() => {
+                //     let nw = self.colorchord_channel.as_ref().unwrap().borrow();
+                //     self.colorchord_data = nw.clone();
+                // }
 
-                _val = self.tempo_channel.as_mut().unwrap().changed()
-                , if self.tempo_channel.is_some() => {
-                    let nw = self.tempo_channel.as_ref().unwrap().borrow();
-                    self.tempo_data = nw.clone();
-                }
+                // _val = self.tempo_channel.as_mut().unwrap().changed()
+                // , if self.tempo_channel.is_some() => {
+                //     let nw = self.tempo_channel.as_ref().unwrap().borrow();
+                //     self.tempo_data = nw.clone();
+                // }
 
-                _val = self.onset_channel.as_mut().unwrap().changed()
-                , if self.onset_channel.is_some() => {
-                    let nw = self.onset_channel.as_ref().unwrap().borrow();
-                    println!("ONSET: {:.1}", *nw);
-                }
+                // _val = self.onset_channel.as_mut().unwrap().changed()
+                // , if self.onset_channel.is_some() => {
+                //     let nw = self.onset_channel.as_ref().unwrap().borrow();
+                //     println!("ONSET: {:.1}", *nw);
+                // }
 
                 _tick = self.ticker.tick() => {
                     self.produce().await;
@@ -63,7 +71,8 @@ impl Producer {
     //Internal
 
     async fn produce(&mut self) {
-        dbg!(&self.colorchord_data);
+        self.frame_channel_tx.send(Frame {});
+        // dbg!(&self.colorchord_data);
     }
 
     //Attach channels
@@ -80,5 +89,10 @@ impl Producer {
 
     pub fn attach_onset(&mut self, chan: tokio::sync::watch::Receiver<f32>) {
         self.onset_channel = Some(chan)
+    }
+
+    //Get Channels
+    pub fn frame_channel(&self) -> tokio::sync::watch::Receiver<Frame> {
+        return self.frame_channel_rx.clone();
     }
 }

@@ -1,4 +1,6 @@
 use crate::engines::pattern;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 pub struct Strobe {}
 
 impl pattern::Pattern for Strobe {
@@ -7,6 +9,16 @@ impl pattern::Pattern for Strobe {
     }
 
     fn process(&self) -> Vec<vecmath::Vector4<f64>> {
-        return vec![[0.0, 0.0, 1.0, 1.0]; 700];
+        let t = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as f64;
+        return vec![[t.sin(), t.cos(), 1.0, 1.0]; 700];
+    }
+}
+
+impl Strobe {
+    pub fn new() -> Strobe {
+        Strobe {}
     }
 }

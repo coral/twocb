@@ -45,8 +45,16 @@ pub async fn main() {
 
     manager.add_link(lnk);
 
-    let rst = manager.render().await;
-    opc.write(rst)
+    let mut prod = producer::Producer::new(60.0);
+    let mut framechan = prod.frame_channel();
+    tokio::spawn(async move {
+        tokio::join!(prod.start());
+    });
+
+    while framechan.changed().await.is_ok() {
+        let rst = manager.render().await;
+        opc.write(rst);
+    }
 }
 // pub async fn main() {
 //     env::set_var("RUST_LOG", "trace");
