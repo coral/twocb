@@ -7,4 +7,4 @@
 
 ## dyn dispatch
 
-Figure out how the fuck we should dynamically dispatch traits.
+build.rs automatic generation of pattern list
