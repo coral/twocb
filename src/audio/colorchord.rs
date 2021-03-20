@@ -1,6 +1,7 @@
 use crate::audio;
+use log::{debug, info, warn};
 use rustchord;
-use tokio::sync::watch;
+use tokio::sync::broadcast;
 
 pub struct Colorchord {
     dr: crossbeam_channel::Receiver<Vec<f32>>,
@@ -8,8 +9,7 @@ pub struct Colorchord {
     nf: rustchord::Notefinder,
 
     //chan
-    tx: tokio::sync::watch::Sender<NoteResult>,
-    rx: tokio::sync::watch::Receiver<NoteResult>,
+    tx: tokio::sync::broadcast::Sender<NoteResult>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,16 +23,12 @@ impl Colorchord {
         stream_setting: audio::StreamSetting,
         dr: crossbeam_channel::Receiver<Vec<f32>>,
     ) -> Colorchord {
-        let (tx, mut rx) = watch::channel(NoteResult {
-            notes: Vec::new(),
-            folded: Vec::new(),
-        });
+        let (tx, mut rx) = broadcast::channel(10);
         Colorchord {
             stream_setting,
             dr,
             nf: rustchord::Notefinder::new(stream_setting.sample_rate as i32),
             tx: tx,
-            rx: rx,
         }
     }
 
@@ -43,8 +39,8 @@ impl Colorchord {
         }
     }
 
-    pub fn channel(&self) -> tokio::sync::watch::Receiver<NoteResult> {
-        return self.rx.clone();
+    pub fn channel(&self) -> tokio::sync::broadcast::Receiver<NoteResult> {
+        return self.tx.subscribe();
     }
 
     pub fn run(&mut self) {
@@ -55,7 +51,7 @@ impl Colorchord {
                 notes: self.nf.get_notes(),
                 folded: self.nf.get_folded().to_owned(),
             };
-            self.tx.send(m).unwrap();
+            self.tx.send(m);
         }
     }
 }

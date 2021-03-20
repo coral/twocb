@@ -15,6 +15,7 @@ use log;
 use output::Adapter;
 use pretty_env_logger;
 use std::env;
+use tokio::sync::oneshot;
 
 use std::time::{Duration, Instant};
 
@@ -22,6 +23,43 @@ use std::time::{Duration, Instant};
 pub async fn main() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
+
+    ////AUDIOSHIT
+
+    let audiosetting = audio::StreamSetting {
+        sample_rate: 48_000,
+        buffer_size: 1024,
+        channels: 1,
+    };
+    let mut input = audio::Input::new(audiosetting);
+    let stream = input.start();
+
+    //Aubio
+
+    let stream_processing = stream.clone();
+    let (tempop, tempoc) = oneshot::channel();
+    let (onsetp, onsetc) = oneshot::channel();
+    let ap = tokio::spawn(async move {
+        let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
+        tempop.send(audioprocessing.tempo_channel()).unwrap();
+        onsetp.send(audioprocessing.onset_channel()).unwrap();
+        audioprocessing.run();
+    });
+
+    let tempo_channel = tempoc.await.unwrap();
+    let onset_channel = onsetc.await.unwrap();
+
+    //Colorchord
+
+    let stream_colorchord = stream.clone();
+    let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
+    let colorchord_channel = colorchord.channel();
+    let cr = tokio::spawn(async move {
+        colorchord.run();
+    });
+
+    //////////DONE WITH SETUP
+
     let mut opc = output::OPCOutput::new(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         7890,
@@ -48,6 +86,7 @@ pub async fn main() {
     manager.add_link(lnk);
 
     let mut prod = producer::Producer::new(20.0);
+    prod.attach_colorchord(colorchord_channel);
     let mut framechan = prod.frame_channel();
     tokio::spawn(async move {
         tokio::join!(prod.start());

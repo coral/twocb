@@ -1,5 +1,6 @@
 use crate::audio;
 use std::time::{Duration, Instant};
+use tokio::sync::broadcast;
 use tokio::sync::watch;
 use tokio::time;
 
@@ -8,9 +9,9 @@ pub struct Producer {
     index: u64,
     ticker: time::Interval,
 
-    colorchord_channel: Option<tokio::sync::watch::Receiver<audio::colorchord::NoteResult>>,
-    tempo_channel: Option<tokio::sync::watch::Receiver<audio::TempoResult>>,
-    onset_channel: Option<tokio::sync::watch::Receiver<f32>>,
+    colorchord_channel: tokio::sync::broadcast::Receiver<audio::colorchord::NoteResult>,
+    tempo_channel: tokio::sync::broadcast::Receiver<audio::TempoResult>,
+    onset_channel: tokio::sync::broadcast::Receiver<f32>,
 
     colorchord_data: audio::colorchord::NoteResult,
     tempo_data: audio::TempoResult,
@@ -29,9 +30,9 @@ impl Producer {
             index: 0,
             ticker: tokio::time::interval(Duration::from_millis((1000. / framerate) as u64)),
 
-            colorchord_channel: None,
-            tempo_channel: None,
-            onset_channel: None,
+            colorchord_channel: broadcast::channel(10).1,
+            tempo_channel: broadcast::channel(10).1,
+            onset_channel: broadcast::channel(10).1,
 
             colorchord_data: audio::Colorchord::get_empty(),
             tempo_data: audio::Processing::get_empty(),
@@ -43,26 +44,8 @@ impl Producer {
     pub async fn start(&mut self) {
         loop {
             tokio::select! {
-                // _val = self.colorchord_channel.as_mut().unwrap().changed()
-                // ,if self.colorchord_channel.is_some() => {
-                //     let nw = self.colorchord_channel.as_ref().unwrap().borrow();
-                //     self.colorchord_data = nw.clone();
-                // }
-
-                // _val = self.tempo_channel.as_mut().unwrap().changed()
-                // , if self.tempo_channel.is_some() => {
-                //     let nw = self.tempo_channel.as_ref().unwrap().borrow();
-                //     self.tempo_data = nw.clone();
-                // }
-
-                // _val = self.onset_channel.as_mut().unwrap().changed()
-                // , if self.onset_channel.is_some() => {
-                //     let nw = self.onset_channel.as_ref().unwrap().borrow();
-                //     println!("ONSET: {:.1}", *nw);
-                // }
-
                 _tick = self.ticker.tick() => {
-                    self.produce().await;
+                    self.produce();
                 }
             }
         }
@@ -70,25 +53,24 @@ impl Producer {
 
     //Internal
 
-    async fn produce(&mut self) {
+    fn produce(&mut self) {
         self.frame_channel_tx.send(Frame {});
-        // dbg!(&self.colorchord_data);
     }
 
     //Attach channels
     pub fn attach_colorchord(
         &mut self,
-        chan: tokio::sync::watch::Receiver<audio::colorchord::NoteResult>,
+        chan: tokio::sync::broadcast::Receiver<audio::colorchord::NoteResult>,
     ) {
-        self.colorchord_channel = Some(chan)
+        self.colorchord_channel = chan;
     }
 
-    pub fn attach_tempo(&mut self, chan: tokio::sync::watch::Receiver<audio::TempoResult>) {
-        self.tempo_channel = Some(chan)
+    pub fn attach_tempo(&mut self, chan: tokio::sync::broadcast::Receiver<audio::TempoResult>) {
+        self.tempo_channel = chan;
     }
 
-    pub fn attach_onset(&mut self, chan: tokio::sync::watch::Receiver<f32>) {
-        self.onset_channel = Some(chan)
+    pub fn attach_onset(&mut self, chan: tokio::sync::broadcast::Receiver<f32>) {
+        self.onset_channel = chan;
     }
 
     //Get Channels
