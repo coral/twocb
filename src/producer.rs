@@ -30,7 +30,7 @@ impl Producer {
             index: 0,
             ticker: tokio::time::interval(Duration::from_millis((1000. / framerate) as u64)),
 
-            colorchord_channel: broadcast::channel(10).1,
+            colorchord_channel: broadcast::channel(1).1,
             tempo_channel: broadcast::channel(10).1,
             onset_channel: broadcast::channel(10).1,
 
@@ -46,6 +46,16 @@ impl Producer {
             tokio::select! {
                 _tick = self.ticker.tick() => {
                     self.produce();
+                }
+                // Ok(v) = self.tempo_channel.recv() => {
+                //     self.tempo_data = v;
+                // }
+                v = self.colorchord_channel.recv() => {
+                    dbg!(v);
+                    //self.colorchord_data = v.clone();
+                }
+                else => {
+                   break;
                 }
             }
         }

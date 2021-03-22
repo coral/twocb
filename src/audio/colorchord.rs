@@ -23,12 +23,11 @@ impl Colorchord {
         stream_setting: audio::StreamSetting,
         dr: crossbeam_channel::Receiver<Vec<f32>>,
     ) -> Colorchord {
-        let (tx, mut rx) = broadcast::channel(10);
         Colorchord {
             stream_setting,
             dr,
             nf: rustchord::Notefinder::new(stream_setting.sample_rate as i32),
-            tx: tx,
+            tx: broadcast::channel(1).0,
         }
     }
 
