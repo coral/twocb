@@ -42,16 +42,18 @@ impl Producer {
         }
     }
     pub async fn start(&mut self) {
+        dbg!(&self.colorchord_channel);
         loop {
             tokio::select! {
                 _tick = self.ticker.tick() => {
-                    self.produce();
+                    println!(" tick");
+                    //self.produce();
                 }
                 // Ok(v) = self.tempo_channel.recv() => {
                 //     self.tempo_data = v;
                 // }
                 v = self.colorchord_channel.recv() => {
-                    dbg!(v);
+                    println!("channel");
                     //self.colorchord_data = v.clone();
                 }
                 else => {

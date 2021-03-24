@@ -16,6 +16,7 @@ use output::Adapter;
 use pretty_env_logger;
 use std::env;
 use tokio::sync::oneshot;
+use tokio::task;
 
 use std::time::{Duration, Instant};
 
@@ -54,7 +55,7 @@ pub async fn main() {
     let stream_colorchord = stream.clone();
     let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
     let colorchord_channel = colorchord.channel();
-    let cr = tokio::spawn(async move {
+    let cr = task::spawn_blocking(move || {
         colorchord.run();
     });
 
@@ -71,7 +72,7 @@ pub async fn main() {
     let patterns = rse.list();
 
     for n in patterns {
-        print!("{}", n);
+        //print!("{}", n);
     }
 
     let mut stp = layers::Step {
