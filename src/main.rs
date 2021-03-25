@@ -40,7 +40,7 @@ pub async fn main() {
     let stream_processing = stream.clone();
     let (tempop, tempoc) = oneshot::channel();
     let (onsetp, onsetc) = oneshot::channel();
-    let ap = tokio::spawn(async move {
+    let ap = task::spawn_blocking(move || {
         let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
         tempop.send(audioprocessing.tempo_channel()).unwrap();
         onsetp.send(audioprocessing.onset_channel()).unwrap();
@@ -93,7 +93,7 @@ pub async fn main() {
         tokio::join!(prod.start());
     });
 
-    while framechan.changed().await.is_ok() {
+    while framechan.recv().await.is_ok() {
         let rst = manager.render().await;
         opc.write(rst);
     }

@@ -16,15 +16,20 @@ pub struct Producer {
     colorchord_data: audio::colorchord::NoteResult,
     tempo_data: audio::TempoResult,
 
-    frame_channel_tx: tokio::sync::watch::Sender<Frame>,
-    frame_channel_rx: tokio::sync::watch::Receiver<Frame>,
+    frame_channel_tx: tokio::sync::broadcast::Sender<Frame>,
 }
 
-pub struct Frame {}
+#[derive(Debug, Clone)]
+pub struct Frame {
+    pub framerate: f64,
+    pub index: u64,
+
+    pub colorchord: audio::colorchord::NoteResult,
+    pub tempo: audio::TempoResult,
+}
 
 impl Producer {
     pub fn new(framerate: f64) -> Producer {
-        let (tx, mut rx) = watch::channel(Frame {});
         Producer {
             framerate,
             index: 0,
@@ -37,8 +42,7 @@ impl Producer {
             colorchord_data: audio::Colorchord::get_empty(),
             tempo_data: audio::Processing::get_empty(),
 
-            frame_channel_tx: tx,
-            frame_channel_rx: rx,
+            frame_channel_tx: broadcast::channel(1).0,
         }
     }
     pub async fn start(&mut self) {
@@ -46,27 +50,31 @@ impl Producer {
         loop {
             tokio::select! {
                 _tick = self.ticker.tick() => {
-                    println!(" tick");
-                    //self.produce();
+                    self.produce();
                 }
-                // Ok(v) = self.tempo_channel.recv() => {
-                //     self.tempo_data = v;
-                // }
-                v = self.colorchord_channel.recv() => {
-                    println!("channel");
-                    //self.colorchord_data = v.clone();
+                Ok(v) = self.colorchord_channel.recv() => {
+                    self.colorchord_data = v;
+                }
+                Ok(v) = self.tempo_channel.recv() => {
+                    self.tempo_data = v;
                 }
                 else => {
-                   break;
                 }
             }
+            self.index = self.index + 1;
         }
     }
 
     //Internal
 
     fn produce(&mut self) {
-        self.frame_channel_tx.send(Frame {});
+        self.frame_channel_tx.send(Frame {
+            framerate: self.framerate,
+            index: self.index,
+
+            colorchord: self.colorchord_data.clone(),
+            tempo: self.tempo_data.clone(),
+        });
     }
 
     //Attach channels
@@ -86,7 +94,7 @@ impl Producer {
     }
 
     //Get Channels
-    pub fn frame_channel(&self) -> tokio::sync::watch::Receiver<Frame> {
-        return self.frame_channel_rx.clone();
+    pub fn frame_channel(&self) -> tokio::sync::broadcast::Receiver<Frame> {
+        return self.frame_channel_tx.subscribe();
     }
 }
