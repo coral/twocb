@@ -6,7 +6,7 @@ pub struct FoldedDemo {}
 
 impl pattern::Pattern for FoldedDemo {
     fn name(&self) -> String {
-        return "strobe".to_string();
+        return "foldeddemo".to_string();
     }
 
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {

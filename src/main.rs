@@ -71,6 +71,10 @@ pub async fn main() {
     rse.bootstrap().unwrap();
     let patterns = rse.list();
 
+    let mut dse = engines::DynamicEngine::new("dynamic/*.js");
+    dse.bootstrap().unwrap();
+    let patterns = dse.list();
+
     let stp = layers::Step {
         pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
         blendmode: layers::blending::BlendModes::Add,

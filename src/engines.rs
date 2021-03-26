@@ -1,7 +1,9 @@
+pub mod dynamic_engine;
 pub mod pattern;
 pub mod rs_engine;
 use std::sync::Arc;
 
+pub use dynamic_engine::DynamicEngine;
 pub use rs_engine::RSEngine;
 
 pub use pattern::Pattern;
