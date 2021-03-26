@@ -65,28 +65,25 @@ pub async fn main() {
         IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         7890,
     ));
-    opc.connect().await;
+    opc.connect().await.unwrap();
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
     let patterns = rse.list();
 
-    for n in patterns {
-        //print!("{}", n);
-    }
-
-    let mut stp = layers::Step {
-        pattern: rse.instantiate_pattern("colorchord").unwrap(),
+    let stp = layers::Step {
+        pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
-    let mut lnk = layers::Link::create(String::from("firstExperince"), vec![stp]);
+    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp]);
 
     let mut manager = layers::Manager::new();
 
     manager.add_link(lnk);
 
-    let mut prod = producer::Producer::new(200.0);
+    let mut prod = producer::Producer::new(60.0);
+
     prod.attach_colorchord(colorchord_channel);
     prod.attach_tempo(tempo_channel);
     prod.attach_onset(onset_channel);

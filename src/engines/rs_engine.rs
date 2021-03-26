@@ -1,9 +1,10 @@
 use crate::engines;
 use anyhow::Result;
+use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-mod colorchord;
+mod foldeddemo;
 mod strobe;
 
 pub struct RSEngine {
@@ -17,15 +18,13 @@ impl engines::Engine for RSEngine {
             Box::new(|| Box::new(strobe::Strobe::new())),
         );
         self.inventory.insert(
-            "colorchord".to_string(),
-            Box::new(|| Box::new(colorchord::Colorchord::new())),
+            "foldeddemo".to_string(),
+            Box::new(|| Box::new(foldeddemo::FoldedDemo::new())),
         );
+
+        info!("Started RSEngine: {:?}", self.list());
         Ok(())
     }
-
-    // fn list(&mut self) -> Vec<Arc<dyn engines::pattern::Pattern>> {
-    //     vec![Arc::new(strobe::Strobe::new())]
-    // }
 
     fn list(&self) -> Vec<String> {
         self.inventory.keys().cloned().collect()
@@ -34,17 +33,6 @@ impl engines::Engine for RSEngine {
     fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern>> {
         self.inventory.get(name).map(|p| p())
     }
-
-    // fn list(&mut self) -> Vec<engines::Pattern> {
-    //     vec![
-    //         engines::Pattern {
-    //             name: "first pattern".to_string(),
-    //         },
-    //         engines::Pattern {
-    //             name: "second pattern".to_string(),
-    //         },
-    //     ]
-    // }
 }
 
 impl RSEngine {
@@ -52,9 +40,5 @@ impl RSEngine {
         return RSEngine {
             inventory: HashMap::new(),
         };
-    }
-
-    pub fn hello(&mut self) {
-        println!("OKIDOKI");
     }
 }

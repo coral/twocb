@@ -52,8 +52,13 @@ impl Input {
         let (ds, dr) = crossbeam_channel::unbounded();
 
         let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-            let mut output_fell_behind = false;
-            ds.send(data.to_vec());
+            let output_fell_behind = false;
+            match ds.send(data.to_vec()) {
+                Err(err) => {
+                    error!("Input audio cannot be fed to channel: {}", err)
+                }
+                _ => {}
+            };
             if output_fell_behind {
                 eprintln!("output stream fell behind: try increasing latency");
             }

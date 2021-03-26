@@ -11,7 +11,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let mut f = 0.0;
         if self.lit {
             f = 1.0;
@@ -26,9 +26,5 @@ impl pattern::Pattern for Strobe {
 impl Strobe {
     pub fn new() -> Strobe {
         Strobe { lit: false }
-    }
-
-    pub fn name() -> String {
-        return "strobe".to_string();
     }
 }
