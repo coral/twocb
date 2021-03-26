@@ -10,7 +10,7 @@ impl pattern::Pattern for FoldedDemo {
     }
 
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
-        let dd = frame.triangle();
+        let dd = frame.square();
         let mut d = vec![[dd, dd, dd, 1.0]; 864];
         let mut i = 0;
         for x in &frame.colorchord.folded {

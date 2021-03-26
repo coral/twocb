@@ -1,6 +1,6 @@
 use crate::audio;
 use log::warn;
-use std::f64::consts::{FRAC_2_PI, PI};
+use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
 use tokio::time;
@@ -145,7 +145,7 @@ impl Frame {
         }
     }
 
-    pub fn triangle(&self) -> f64 {
-        (self.sin(1.0, 0.0)).acos() / FRAC_2_PI
+    pub fn triangle(&self, cycle: f64) -> f64 {
+        (self.sin(cycle, 0.0)).acos() / FRAC_PI_2
     }
 }
