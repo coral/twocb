@@ -1,6 +1,6 @@
 use crate::engines::Pattern;
+use crate::producer;
 use atomic_counter::{AtomicCounter, ConsistentCounter};
-use futures::future;
 use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -51,16 +51,18 @@ impl Manager {
             .is_some();
     }
 
-    pub async fn render(&mut self) -> Vec<vecmath::Vector4<f64>> {
+    pub async fn render(&mut self, frame: producer::Frame) -> Vec<vecmath::Vector4<f64>> {
+        let f = Arc::new(frame);
         self.buffer.clear();
         let mut handles = vec![];
         for la in &self.links {
             let cid = la.id;
             let link = la.link.clone();
+            let frame = f.clone();
             handles.push(tokio::spawn(async move {
                 LinkResult {
                     id: cid,
-                    output: link.lock().unwrap().render(),
+                    output: link.lock().unwrap().render(frame),
                 }
             }));
         }
@@ -94,9 +96,9 @@ impl Link {
         }
     }
 
-    pub fn render(&mut self) -> Vec<vecmath::Vector4<f64>> {
+    pub fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         for (i, stp) in self.steps.iter_mut().enumerate() {
-            let mut out = stp.pattern.process();
+            let mut out = stp.pattern.process(frame.clone());
             if i == 0 {
                 self.output = out
             } else {

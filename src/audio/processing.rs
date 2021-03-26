@@ -1,8 +1,7 @@
 use crate::audio;
 use aubio_rs::{Onset, Tempo, FFT};
-use std::rc::Rc;
 use std::time::Instant;
-use tokio::sync::watch;
+use tokio::sync::broadcast;
 
 pub struct Processing {
     dr: crossbeam_channel::Receiver<Vec<f32>>,
@@ -11,11 +10,8 @@ pub struct Processing {
     onset: Onset,
     fft: FFT,
     //chan
-    tempo_tx: tokio::sync::watch::Sender<TempoResult>,
-    tempo_rx: tokio::sync::watch::Receiver<TempoResult>,
-
-    onset_tx: tokio::sync::watch::Sender<f32>,
-    onset_rx: tokio::sync::watch::Receiver<f32>,
+    tempo_tx: tokio::sync::broadcast::Sender<TempoResult>,
+    onset_tx: tokio::sync::broadcast::Sender<f32>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,14 +27,9 @@ impl Processing {
         stream_setting: audio::StreamSetting,
         dr: crossbeam_channel::Receiver<Vec<f32>>,
     ) -> Processing {
-        let (tempo_tx, mut tempo_rx) = watch::channel(TempoResult {
-            bpm: 0.0,
-            confidence: 0.0,
-            period: 0.0,
-            time: Instant::now(),
-        });
+        let tempo_tx = broadcast::channel(1).0;
 
-        let (onset_tx, mut onset_rx) = watch::channel(0.0);
+        let onset_tx = broadcast::channel(1).0;
 
         Processing {
             stream_setting,
@@ -66,10 +57,8 @@ impl Processing {
 
             //Channel stuff
             tempo_tx: tempo_tx,
-            tempo_rx: tempo_rx,
 
             onset_tx: onset_tx,
-            onset_rx: onset_rx,
         }
     }
 
@@ -82,12 +71,12 @@ impl Processing {
         }
     }
 
-    pub fn tempo_channel(&self) -> tokio::sync::watch::Receiver<TempoResult> {
-        return self.tempo_rx.clone();
+    pub fn tempo_channel(&self) -> tokio::sync::broadcast::Receiver<TempoResult> {
+        return self.tempo_tx.subscribe();
     }
 
-    pub fn onset_channel(&self) -> tokio::sync::watch::Receiver<f32> {
-        return self.onset_rx.clone();
+    pub fn onset_channel(&self) -> tokio::sync::broadcast::Receiver<f32> {
+        return self.onset_tx.subscribe();
     }
 
     pub fn run(&mut self) {

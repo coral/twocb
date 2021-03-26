@@ -76,7 +76,7 @@ pub async fn main() {
     }
 
     let mut stp = layers::Step {
-        pattern: rse.instantiate_pattern("strobe").unwrap(),
+        pattern: rse.instantiate_pattern("colorchord").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
@@ -86,56 +86,27 @@ pub async fn main() {
 
     manager.add_link(lnk);
 
-    let mut prod = producer::Producer::new(20.0);
+    let mut prod = producer::Producer::new(200.0);
     prod.attach_colorchord(colorchord_channel);
+    prod.attach_tempo(tempo_channel);
+    prod.attach_onset(onset_channel);
     let mut framechan = prod.frame_channel();
     tokio::spawn(async move {
         tokio::join!(prod.start());
     });
 
-    while framechan.recv().await.is_ok() {
-        let rst = manager.render().await;
-        opc.write(rst);
+    loop {
+        let frame_data = framechan.recv().await;
+        match frame_data {
+            Ok(frame_data) => {
+                let rst = manager.render(frame_data).await;
+                opc.write(rst);
+            }
+            Err(_) => {}
+        }
     }
 }
 // pub async fn main() {
-//     env::set_var("RUST_LOG", "trace");
-//     pretty_env_logger::init();
-//     let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
-
-//     let audiosetting = audio::StreamSetting {
-//         sample_rate: 48_000,
-//         buffer_size: 1024,
-//         channels: 1,
-//     };
-//     let mut input = audio::Input::new(audiosetting);
-//     let stream = input.start();
-
-//     //Aubio
-
-//     let stream_processing = stream.clone();
-//     let (tempop, tempoc) = oneshot::channel();
-//     let (onsetp, onsetc) = oneshot::channel();
-//     let ap = task::spawn(async move {
-//         let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
-//         tempop.send(audioprocessing.tempo_channel()).unwrap();
-//         onsetp.send(audioprocessing.onset_channel()).unwrap();
-//         audioprocessing.run();
-//     });
-
-//     let tempo_channel = tempoc.await.unwrap();
-//     let onset_channel = onsetc.await.unwrap();
-
-//     //Colorchord
-
-//     let stream_colorchord = stream.clone();
-//     let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
-//     let colorchord_channel = colorchord.channel();
-//     let cr = task::spawn(async move {
-//         colorchord.run();
-//     });
-
-//     //join!(ap, cr);
 
 //     //std::thread::sleep(std::time::Duration::from_secs(10));
 

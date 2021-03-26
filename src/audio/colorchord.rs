@@ -15,8 +15,8 @@ pub struct Colorchord {
 
 #[derive(Debug, Clone)]
 pub struct NoteResult {
-    notes: Vec<rustchord::Note>,
-    folded: Vec<f32>,
+    pub notes: Vec<rustchord::Note>,
+    pub folded: Vec<f32>,
 }
 
 impl Colorchord {
@@ -51,7 +51,7 @@ impl Colorchord {
                 notes: self.nf.get_notes(),
                 folded: self.nf.get_folded().to_owned(),
             };
-            self.tx.send(m);
+            let _ = self.tx.send(m);
         }
     }
 }

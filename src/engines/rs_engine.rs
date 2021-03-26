@@ -3,6 +3,7 @@ use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+mod colorchord;
 mod strobe;
 
 pub struct RSEngine {
@@ -14,6 +15,10 @@ impl engines::Engine for RSEngine {
         self.inventory.insert(
             "strobe".to_string(),
             Box::new(|| Box::new(strobe::Strobe::new())),
+        );
+        self.inventory.insert(
+            "colorchord".to_string(),
+            Box::new(|| Box::new(colorchord::Colorchord::new())),
         );
         Ok(())
     }

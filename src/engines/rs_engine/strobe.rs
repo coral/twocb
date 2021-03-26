@@ -1,4 +1,6 @@
 use crate::engines::pattern;
+use crate::producer;
+use std::sync::Arc;
 
 pub struct Strobe {
     lit: bool,
@@ -9,7 +11,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn process(&mut self) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let mut f = 0.0;
         if self.lit {
             f = 1.0;

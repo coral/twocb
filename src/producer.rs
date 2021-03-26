@@ -1,7 +1,7 @@
 use crate::audio;
-use std::time::{Duration, Instant};
+use log::warn;
+use std::time::Duration;
 use tokio::sync::broadcast;
-use tokio::sync::watch;
 use tokio::time;
 
 pub struct Producer {
@@ -46,7 +46,6 @@ impl Producer {
         }
     }
     pub async fn start(&mut self) {
-        dbg!(&self.colorchord_channel);
         loop {
             tokio::select! {
                 _tick = self.ticker.tick() => {
@@ -68,13 +67,19 @@ impl Producer {
     //Internal
 
     fn produce(&mut self) {
-        self.frame_channel_tx.send(Frame {
-            framerate: self.framerate,
-            index: self.index,
+        if self
+            .frame_channel_tx
+            .send(Frame {
+                framerate: self.framerate,
+                index: self.index,
 
-            colorchord: self.colorchord_data.clone(),
-            tempo: self.tempo_data.clone(),
-        });
+                colorchord: self.colorchord_data.clone(),
+                tempo: self.tempo_data.clone(),
+            })
+            .is_err()
+        {
+            warn!("Could not feed framechannel");
+        }
     }
 
     //Attach channels
