@@ -114,11 +114,6 @@ pub async fn main() {
 //     //input.start();
 
 //     //data::init();
-//     let mut prod = producer::Producer::new(60.0);
-//     prod.attach_colorchord(colorchord_channel);
-//     prod.attach_tempo(tempo_channel);
-//     prod.attach_onset(onset_channel);
-//     let p = prod.start();
 
 //     // let run = prod.start();
 //     // run.await;

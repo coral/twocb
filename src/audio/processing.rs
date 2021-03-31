@@ -16,10 +16,10 @@ pub struct Processing {
 
 #[derive(Debug, Clone)]
 pub struct TempoResult {
-    bpm: f32,
-    confidence: f32,
-    period: f32,
-    time: Instant,
+    pub bpm: f32,
+    pub confidence: f32,
+    pub period: f32,
+    pub time: Instant,
 }
 
 impl Processing {

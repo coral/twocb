@@ -4,6 +4,7 @@
 
 ### Frame
 
+    lerp the tempo value
 
 ## dyn dispatch
 

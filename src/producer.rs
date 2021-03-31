@@ -1,5 +1,5 @@
 use crate::audio;
-use log::warn;
+use log::{debug, warn};
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
@@ -12,6 +12,7 @@ pub struct Producer {
     ticker: time::Interval,
 
     start: Instant,
+    cycletimer: Instant,
     last_frame: Instant,
 
     colorchord_channel: tokio::sync::broadcast::Receiver<audio::colorchord::NoteResult>,
@@ -34,6 +35,7 @@ impl Producer {
             ticker: tokio::time::interval(Duration::from_millis((1000. / framerate) as u64)),
 
             start: Instant::now(),
+            cycletimer: Instant::now(),
             last_frame: Instant::now(),
 
             colorchord_channel: broadcast::channel(1).1,
@@ -57,7 +59,9 @@ impl Producer {
                     self.colorchord_data = v;
                 }
                 Ok(v) = self.tempo_channel.recv() => {
-                    self.tempo_data = v;
+                    if self.tempo_enabled {
+                        self.sync_tempo(v);
+                    }
                 }
                 else => {
                 }
@@ -89,6 +93,17 @@ impl Producer {
         self.last_frame = Instant::now();
     }
 
+    fn sync_tempo(&mut self, t: audio::processing::TempoResult) {
+        // debug!(
+        //     "[TEMPO] BPM: {}, Conf: {}, P: {}",
+        //     t.bpm, t.confidence, t.period
+        // );
+        self.cycletimer = t.time;
+        self.tempo = 120.0 / (t.bpm as f64);
+
+        self.tempo_data = t;
+    }
+
     //Attach channels
     pub fn attach_colorchord(
         &mut self,
@@ -112,7 +127,12 @@ impl Producer {
     }
 
     fn get_phase(&self) -> f64 {
-        self.start.elapsed().as_secs_f64() / self.tempo % 1.0
+        self.cycletimer.elapsed().as_secs_f64() / self.tempo % 1.0
+    }
+
+    // Settings
+    pub fn _follow_tempo(&mut self, follow: bool) {
+        self.tempo_enabled = follow;
     }
 }
 
