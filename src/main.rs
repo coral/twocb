@@ -69,14 +69,14 @@ pub async fn main() {
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
-    let patterns = rse.list();
 
-    let mut dse = engines::DynamicEngine::new("dynamic/*.js");
+    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js");
     dse.bootstrap().unwrap();
-    let patterns = dse.list();
+    //let patterns = dse.list();
+    //dbg!(patterns);
 
     let stp = layers::Step {
-        pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
+        pattern: dse.instantiate_pattern("first.js").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
