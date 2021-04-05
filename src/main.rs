@@ -70,7 +70,7 @@ pub async fn main() {
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
 
-    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js");
+    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
     dse.bootstrap().unwrap();
     //let patterns = dse.list();
     //dbg!(patterns);
