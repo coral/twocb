@@ -113,22 +113,6 @@ pub async fn main() {
 }
 // pub async fn main() {
 
-//     //std::thread::sleep(std::time::Duration::from_secs(10));
-
-//     //input.start();
-
-//     //data::init();
-
-//     // let run = prod.start();
-//     // run.await;
-
-//     join!(p);
-
-//     // let mut layer_manager = layers::Manager::new();
-//     // layer_manager.sm();
-
-//     //patterns::dynamic::initalize_runtime();
-
 //     // let join = task::spawn(async {
 //     //     let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
 //     //     let mut p = patterns::dynamic::Pattern::create("examples/debug.js", map.clone());
