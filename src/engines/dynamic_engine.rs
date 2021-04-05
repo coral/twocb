@@ -165,28 +165,7 @@ impl DynamicPattern {
         // dbg!(m);
     }
 
-    fn bind_function(
-        scope: &mut v8::HandleScope,
-        context: &rusty_v8::Context,
-        name: &str,
-    ) -> Option<v8::Global<v8::Function>> {
-        let fn_name = v8::String::new(scope, &name).unwrap();
-        let fn_value = context
-            .global(scope)
-            .get(scope, fn_name.into())
-            .expect("missing function Process");
-        let function = v8::Local::<v8::Function>::try_from(fn_value).expect("function expected");
-        let function_global_handle = v8::Global::new(scope, function);
-        Some(function_global_handle)
-    }
-}
-
-impl engines::pattern::Pattern for DynamicPattern {
-    fn name(&self) -> String {
-        return "ok".to_string();
-    }
-
-    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn dynamic_process(&mut self) {
         let scope =
             &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
         let context: &v8::Context = self.context.borrow();
@@ -214,7 +193,7 @@ impl engines::pattern::Pattern for DynamicPattern {
             panic!("{}", exception_string);
         }
 
-        // let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
+        let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
         // let backing = res.buffer(try_catch).unwrap().get_backing_store();
         // let slice: &[f64] = unsafe {
         //     let ptr = backing.data().offset(res.byte_offset() as isize);
@@ -226,16 +205,44 @@ impl engines::pattern::Pattern for DynamicPattern {
         // dbg!(slice);
         // let mut m = vec![0; res.byte_length()];
 
-        // let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
-        // let copied = unsafe {
-        //     let ptr = v.as_mut_ptr();
-        //     let slice = std::slice::from_raw_parts_mut(
-        //         ptr as *mut u8,
-        //         v.len() * std::mem::size_of::<f64>(),
-        //     );
-        //     res.copy_contents(slice)
-        // };
+        let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
+        let copied = unsafe {
+            let ptr = v.as_mut_ptr();
+            let slice = std::slice::from_raw_parts_mut(
+                ptr as *mut u8,
+                v.len() * std::mem::size_of::<f64>(),
+            );
+            res.copy_contents(slice)
+        };
+    }
 
+    fn bind_function(
+        scope: &mut v8::HandleScope,
+        context: &rusty_v8::Context,
+        name: &str,
+    ) -> Option<v8::Global<v8::Function>> {
+        let fn_name = v8::String::new(scope, &name).unwrap();
+        let fn_value = context
+            .global(scope)
+            .get(scope, fn_name.into())
+            .expect("missing function Process");
+        let function = v8::Local::<v8::Function>::try_from(fn_value).expect("function expected");
+        let function_global_handle = v8::Global::new(scope, function);
+        Some(function_global_handle)
+    }
+}
+
+impl engines::pattern::Pattern for DynamicPattern {
+    fn name(&self) -> String {
+        return "ok".to_string();
+    }
+
+    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+        // Ok this sucks
+        // This needs to be called on the same thread as we initialized the pattern on.
+        // Really sad
+        // But w/e we can come up with some dumb thread pool.
+        //self.dynamic_process();
         return vec![[1.0, 0.0, 1.0, 1.0]; 864];
     }
 }

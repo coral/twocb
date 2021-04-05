@@ -1,19 +1,35 @@
 use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
 
-pub fn init() {
-    // let mut db = PickleDb::new(
-    //     "files/example.db",
-    //     PickleDbDumpPolicy::AutoDump,
-    //     SerializationMethod::Json,
-    // );
-    let db = PickleDb::load(
-        "files/example.db",
-        PickleDbDumpPolicy::DumpUponRequest,
-        SerializationMethod::Json,
-    )
-    .unwrap();
+pub struct DataLayer {
+    db: PickleDb,
+}
 
-    //db.set("key1", &100).unwrap();
+impl DataLayer {
+    pub fn new(dbpath: &str) -> Result<DataLayer, &'static str> {
+        let mut db = PickleDb::load(
+            dbpath,
+            PickleDbDumpPolicy::DumpUponRequest,
+            SerializationMethod::Json,
+        );
 
-    println!("The value of key1 is: {}", db.get::<i32>("key1").unwrap());
+        match db {
+            Ok(db) => return Ok(DataLayer { db }),
+            Err(_err) => {
+                let mut newdb = PickleDb::new(
+                    dbpath,
+                    PickleDbDumpPolicy::AutoDump,
+                    SerializationMethod::Json,
+                );
+                return Ok(DataLayer { db: newdb });
+            }
+        }
+    }
+
+    pub fn woo(&mut self) {
+        self.db.set("key1", &100).unwrap();
+        println!(
+            "The value of key1 is: {}",
+            self.db.get::<i32>("key1").unwrap()
+        );
+    }
 }

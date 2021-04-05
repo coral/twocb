@@ -25,6 +25,10 @@ pub async fn main() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
+    //Data layer
+    let mut db = data::DataLayer::new("files/settings.db").unwrap();
+    db.woo();
+
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
@@ -76,7 +80,7 @@ pub async fn main() {
     //dbg!(patterns);
 
     let stp = layers::Step {
-        pattern: dse.instantiate_pattern("first.js").unwrap(),
+        pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
