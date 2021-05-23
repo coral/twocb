@@ -1,4 +1,5 @@
 mod audio;
+mod config;
 mod data;
 mod engines;
 mod layers;
@@ -16,6 +17,7 @@ use log::{error, info, warn};
 use output::Adapter;
 use pretty_env_logger;
 use std::env;
+use std::str::FromStr;
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -30,15 +32,17 @@ struct Opts {
 }
 
 fn main() {
-    let opts: Opts = Opts::parse();
-    println!("Value for config: {}", opts.config);
-
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
-    //Data layer
-    let mut db = data::DataLayer::new("files/settings.db").unwrap();
-    db.woo();
+    let opts: Opts = Opts::parse();
+    let cfg = match config::load_config(&opts.config) {
+        Ok(cfg) => cfg,
+        Err(error) => {
+            error!("Could not load the config file: {:?}", error);
+            std::process::exit(2);
+        }
+    };
 
     //Start the tokio runtime
     tokio::runtime::Builder::new_multi_thread()
@@ -46,11 +50,15 @@ fn main() {
         .build()
         .unwrap()
         .block_on(async {
-            run().await;
+            run(cfg).await;
         })
 }
 
-pub async fn run() {
+pub async fn run(cfg: config::Config) {
+    //Data layer
+    let mut db = data::DataLayer::new("files/settings.db").unwrap();
+    db.woo();
+
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
@@ -85,16 +93,19 @@ pub async fn run() {
         colorchord.run();
     });
 
-    //////////DONE WITH SETUP
+    let mut output = output::OutputManager::new();
 
-    let mut opc = output::OPCOutput::new(SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        7890,
-    ));
-    match opc.connect().await {
-        Ok(v) => {}
-        Err(v) => {
-            error!("OPC could not connect: {}", v);
+    //////////DONE WITH SETUP
+    for opc_output in cfg.endpoints.opc {
+        let mut opc = output::OPCOutput::new(SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::from_str(&opc_output.host).unwrap()),
+            opc_output.port as u16,
+        ));
+        match opc.connect().await {
+            Ok(v) => output.add(Box::new(opc)),
+            Err(v) => {
+                error!("OPC could not connect: {}", v);
+            }
         }
     }
 
@@ -132,7 +143,7 @@ pub async fn run() {
         match frame_data {
             Ok(frame_data) => {
                 let rst = manager.render(frame_data).await;
-                opc.write(rst);
+                output.borrow().write(rst);
             }
             Err(_) => {}
         }

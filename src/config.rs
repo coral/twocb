@@ -1,9 +1,8 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
+use std::fs;
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct Config {
     pub endpoints: Endpoints,
 }
 
@@ -18,4 +17,10 @@ pub struct Endpoints {
 pub struct Opc {
     pub host: String,
     pub port: i64,
+}
+
+pub fn load_config(path: &str) -> anyhow::Result<Config> {
+    let data = fs::read_to_string(path)?;
+    let cfg: Config = serde_json::from_str(&data)?;
+    Ok(cfg)
 }
