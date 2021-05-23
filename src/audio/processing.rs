@@ -1,5 +1,5 @@
 use crate::audio;
-use aubio_rs::{Onset, Tempo, FFT};
+use aubio::{Onset, Tempo, FFT};
 use std::time::Instant;
 use tokio::sync::broadcast;
 
@@ -36,7 +36,7 @@ impl Processing {
             dr,
             //TEMPO
             tempo: Tempo::new(
-                aubio_rs::OnsetMode::SpecFlux,
+                aubio::OnsetMode::SpecFlux,
                 stream_setting.buffer_size as usize,
                 512,
                 stream_setting.sample_rate,
@@ -45,7 +45,7 @@ impl Processing {
 
             //ONSET
             onset: Onset::new(
-                aubio_rs::OnsetMode::SpecFlux,
+                aubio::OnsetMode::SpecFlux,
                 stream_setting.buffer_size as usize,
                 512,
                 stream_setting.sample_rate,

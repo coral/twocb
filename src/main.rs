@@ -10,8 +10,9 @@ mod producer;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::{thread, time};
 
+use clap::{AppSettings, Clap};
 use engines::Engine;
-use log;
+use log::{error, info, warn};
 use output::Adapter;
 use pretty_env_logger;
 use std::env;
@@ -20,8 +21,18 @@ use tokio::task;
 
 use std::time::{Duration, Instant};
 
-#[tokio::main]
-pub async fn main() {
+#[derive(Clap)]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Opts {
+    /// Sets a custom config file. Could have been an Option<T> with no default too
+    #[clap(short, long, default_value = "files/config.json")]
+    config: String,
+}
+
+fn main() {
+    let opts: Opts = Opts::parse();
+    println!("Value for config: {}", opts.config);
+
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
@@ -29,6 +40,17 @@ pub async fn main() {
     let mut db = data::DataLayer::new("files/settings.db").unwrap();
     db.woo();
 
+    //Start the tokio runtime
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            run().await;
+        })
+}
+
+pub async fn run() {
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
@@ -69,13 +91,18 @@ pub async fn main() {
         IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
         7890,
     ));
-    opc.connect().await.unwrap();
+    match opc.connect().await {
+        Ok(v) => {}
+        Err(v) => {
+            error!("OPC could not connect: {}", v);
+        }
+    }
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
 
-    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
-    dse.bootstrap().unwrap();
+    //let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
+    //dse.bootstrap().unwrap();
     //let patterns = dse.list();
     //dbg!(patterns);
 
