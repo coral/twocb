@@ -17,6 +17,7 @@ use log::{error, info, warn};
 use output::Adapter;
 use pretty_env_logger;
 use std::env;
+use std::rc::Rc;
 use std::str::FromStr;
 use tokio::sync::oneshot;
 use tokio::task;
@@ -102,7 +103,7 @@ pub async fn run(cfg: config::Config) {
             opc_output.port as u16,
         ));
         match opc.connect().await {
-            Ok(v) => output.add(Box::new(opc)),
+            Ok(v) => output.add(Rc::new(opc)),
             Err(v) => {
                 error!("OPC could not connect: {}", v);
             }
@@ -139,16 +140,13 @@ pub async fn run(cfg: config::Config) {
     });
 
     loop {
-        let frame_data = framechan.recv().await;
-        match frame_data {
-            Ok(frame_data) => {
-                let rst = manager.render(frame_data).await;
-                output.borrow().write(rst);
-            }
-            Err(_) => {}
-        }
+        let frame_data = framechan.recv().await.unwrap();
+
+        let rst = manager.render(frame_data).await;
+        output.clone().write(rst);
     }
 }
+
 // pub async fn main() {
 
 //     // let join = task::spawn(async {
