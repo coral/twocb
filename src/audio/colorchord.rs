@@ -1,6 +1,5 @@
 use crate::audio;
 use crossbeam_channel;
-use log::{debug, info, warn};
 use rustchord;
 use tokio::sync::broadcast;
 

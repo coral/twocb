@@ -1,16 +1,14 @@
 pub mod opc;
 pub use self::opc::OPCOutput;
-use std::rc::Rc;
 
 use vecmath;
 
 pub trait Adapter {
-    fn write(&mut self, data: Vec<vecmath::Vector4<f64>>);
+    fn write(&mut self, data: &[vecmath::Vector4<f64>]);
 }
 
-#[derive(Clone)]
 pub struct OutputManager {
-    outputs: Vec<Rc<dyn Adapter>>,
+    outputs: Vec<Box<dyn Adapter>>,
 }
 
 impl OutputManager {
@@ -20,13 +18,13 @@ impl OutputManager {
         }
     }
 
-    pub fn add(&mut self, output: Rc<dyn Adapter>) {
+    pub fn add(&mut self, output: Box<dyn Adapter>) {
         self.outputs.push(output);
     }
 
-    pub fn write(self, data: Vec<vecmath::Vector4<f64>>) {
-        for output in self.outputs {
-            output.borrow().write(data);
+    pub fn write(&mut self, data: &[vecmath::Vector4<f64>]) {
+        for output in &mut self.outputs {
+            output.write(data);
         }
     }
 }

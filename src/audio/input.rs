@@ -1,6 +1,6 @@
 use crate::audio;
 use cpal;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait, HostTrait};
 use crossbeam_channel;
 use log::{error, info};
 use ringbuf::RingBuffer;

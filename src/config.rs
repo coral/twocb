@@ -4,6 +4,8 @@ use std::fs;
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub endpoints: Endpoints,
+    pub audio: Audio,
+    pub database: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -17,6 +19,14 @@ pub struct Endpoints {
 pub struct Opc {
     pub host: String,
     pub port: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Audio {
+    pub sample_rate: u32,
+    pub buffer_size: u32,
+    pub channels: u16,
 }
 
 pub fn load_config(path: &str) -> anyhow::Result<Config> {

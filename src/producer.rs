@@ -145,6 +145,7 @@ pub struct Frame {
     pub tempo: audio::TempoResult,
 }
 
+#[allow(dead_code)]
 impl Frame {
     pub fn sin(&self, cycle: f64, offset: f64) -> f64 {
         ((self.phase + offset) * PI * cycle).sin()

@@ -29,6 +29,7 @@ pub struct Pixel {
     pub normal: vecmath::Vector3<f64>,
 }
 
+#[allow(dead_code)]
 impl Pixel {
     pub fn top(&self) -> bool {
         return self.coordinate[1] == 0.0;

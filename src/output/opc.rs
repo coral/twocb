@@ -14,7 +14,7 @@ pub struct OPCOutput {
 }
 
 impl output::Adapter for OPCOutput {
-    fn write(&mut self, data: Vec<vecmath::Vector4<f64>>) {
+    fn write(&mut self, data: &[vecmath::Vector4<f64>]) {
         self.buffer.clear();
         self.buffer.push(BROADCAST_CHANNEL);
         self.buffer.push(SET_PIXEL_COLORS);

@@ -1,7 +1,7 @@
 use crate::engines;
 use crate::producer;
 use glob::glob;
-use log::{debug, info, warn};
+use log::debug;
 use rusty_v8 as v8;
 use std::borrow::Borrow;
 use std::collections::HashMap;

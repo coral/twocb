@@ -57,15 +57,15 @@ fn main() {
 
 pub async fn run(cfg: config::Config) {
     //Data layer
-    let mut db = data::DataLayer::new("files/settings.db").unwrap();
+    let mut db = data::DataLayer::new(&cfg.database).unwrap();
     db.woo();
 
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
-        sample_rate: 48_000,
-        buffer_size: 1024,
-        channels: 1,
+        sample_rate: cfg.audio.sample_rate,
+        buffer_size: cfg.audio.buffer_size,
+        channels: cfg.audio.channels,
     };
     let mut input = audio::Input::new(audiosetting);
     let stream = input.start();
@@ -103,7 +103,7 @@ pub async fn run(cfg: config::Config) {
             opc_output.port as u16,
         ));
         match opc.connect().await {
-            Ok(v) => output.add(Rc::new(opc)),
+            Ok(v) => output.add(Box::new(opc)),
             Err(v) => {
                 error!("OPC could not connect: {}", v);
             }
@@ -143,7 +143,7 @@ pub async fn run(cfg: config::Config) {
         let frame_data = framechan.recv().await.unwrap();
 
         let rst = manager.render(frame_data).await;
-        output.clone().write(rst);
+        output.write(&rst);
     }
 }
 
