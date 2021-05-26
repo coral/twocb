@@ -34,7 +34,7 @@ impl engines::Engine for DynamicEngine {
 
 impl DynamicEngine {
     pub fn new(pattern_folder: &str, global_scope: &str) -> DynamicEngine {
-        let global = fs::read_to_string(global_scope)
+        let _global = fs::read_to_string(global_scope)
             .expect("Something went wrong reading the global.js file");
         let code =
             fs::read_to_string(&global_scope).expect("Something went wrong reading the file");
@@ -206,7 +206,7 @@ impl DynamicPattern {
         // let mut m = vec![0; res.byte_length()];
 
         let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
-        let copied = unsafe {
+        let _copied = unsafe {
             let ptr = v.as_mut_ptr();
             let slice = std::slice::from_raw_parts_mut(
                 ptr as *mut u8,

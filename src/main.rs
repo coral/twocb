@@ -9,20 +9,20 @@ mod pixels;
 mod producer;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::{thread, time};
+
 
 use clap::{AppSettings, Clap};
 use engines::Engine;
-use log::{error, info, warn};
+use log::{error};
 use output::Adapter;
 use pretty_env_logger;
 use std::env;
-use std::rc::Rc;
+
 use std::str::FromStr;
 use tokio::sync::oneshot;
 use tokio::task;
 
-use std::time::{Duration, Instant};
+
 
 #[derive(Clap)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -75,7 +75,7 @@ pub async fn run(cfg: config::Config) {
     let stream_processing = stream.clone();
     let (tempop, tempoc) = oneshot::channel();
     let (onsetp, onsetc) = oneshot::channel();
-    let ap = task::spawn_blocking(move || {
+    let _ap = task::spawn_blocking(move || {
         let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
         tempop.send(audioprocessing.tempo_channel()).unwrap();
         onsetp.send(audioprocessing.onset_channel()).unwrap();
@@ -90,7 +90,7 @@ pub async fn run(cfg: config::Config) {
     let stream_colorchord = stream.clone();
     let mut colorchord = audio::Colorchord::new(audiosetting, stream_colorchord);
     let colorchord_channel = colorchord.channel();
-    let cr = task::spawn_blocking(move || {
+    let _cr = task::spawn_blocking(move || {
         colorchord.run();
     });
 
@@ -103,7 +103,7 @@ pub async fn run(cfg: config::Config) {
             opc_output.port as u16,
         ));
         match opc.connect().await {
-            Ok(v) => output.add(Box::new(opc)),
+            Ok(_v) => output.add(Box::new(opc)),
             Err(v) => {
                 error!("OPC could not connect: {}", v);
             }

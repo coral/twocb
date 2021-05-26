@@ -1,12 +1,12 @@
 use notify::{watcher, RecursiveMode, Watcher};
 use rusty_v8 as v8;
-use std::collections::HashMap;
+
 use std::convert::TryFrom;
 use std::fs;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 
 fn main() {
     dbg!("party");
@@ -67,7 +67,7 @@ pub fn start_script(code: &str, stopchan: Receiver<bool>) {
     let code = v8::String::new(scope, code).unwrap();
     // Compile the source code.
     let script = v8::Script::compile(scope, code, None).unwrap();
-    let result = script.run(scope).unwrap();
+    let _result = script.run(scope).unwrap();
 
     // v8::Object::New()
     let process_str = v8::String::new(scope, "hello").unwrap();

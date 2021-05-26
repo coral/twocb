@@ -1,10 +1,10 @@
 use crate::engines::Pattern;
 use crate::producer;
-use atomic_counter::{AtomicCounter, ConsistentCounter};
+use atomic_counter::{AtomicCounter};
 use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
-use tokio::spawn;
+
 
 pub mod blending;
 
@@ -98,7 +98,7 @@ impl Link {
 
     pub fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         for (i, stp) in self.steps.iter_mut().enumerate() {
-            let mut out = stp.pattern.process(frame.clone());
+            let out = stp.pattern.process(frame.clone());
             if i == 0 {
                 self.output = out
             } else {

@@ -15,7 +15,7 @@ pub fn blend(
     mode: BlendModes,
     op1: Vec<vecmath::Vector4<f64>>,
     op2: Vec<vecmath::Vector4<f64>>,
-    value: f64,
+    _value: f64,
 ) -> Vec<vecmath::Vector4<f64>> {
     match mode {
         BlendModes::Add => {

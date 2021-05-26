@@ -72,7 +72,7 @@ impl Input {
         return dr;
     }
 
-    pub fn process(&mut self, input: &[f32], inp: &cpal::InputCallbackInfo) {
+    pub fn process(&mut self, input: &[f32], _inp: &cpal::InputCallbackInfo) {
         for n in input.iter() {
             println!("{}", n)
         }

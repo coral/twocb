@@ -2,7 +2,7 @@ pub fn screen(
     op1: Vec<vecmath::Vector4<f64>>,
     mut op2: Vec<vecmath::Vector4<f64>>,
 ) -> Vec<vecmath::Vector4<f64>> {
-    for (i, v) in op1.iter().enumerate() {
+    for (i, _v) in op1.iter().enumerate() {
         op2[i][0] = (1.0 - (1.0 - op1[i][0]) * (1.0 - op2[i][0])).clamp(0.0, 1.0);
         op2[i][1] = (1.0 - (1.0 - op1[i][1]) * (1.0 - op2[i][1])).clamp(0.0, 1.0);
         op2[i][2] = (1.0 - (1.0 - op1[i][2]) * (1.0 - op2[i][2])).clamp(0.0, 1.0);

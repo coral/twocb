@@ -1,15 +1,15 @@
 use crate::pixels;
-use notify::{watcher, RecursiveMode, Watcher};
+use notify::{Watcher};
 use rusty_v8 as v8;
-use serde::{Deserialize, Serialize};
-use serde_json::*;
+
+
 use std::borrow::Borrow;
-use std::cell::Cell;
-use std::cell::RefCell;
+
+
 use std::convert::TryFrom;
 use std::fs;
-use std::rc::Rc;
-use std::sync::Arc;
+
+
 use std::sync::Once;
 
 pub fn initalize_runtime() {
@@ -207,7 +207,7 @@ impl Pattern {
         // let mut m = vec![0; res.byte_length()];
 
         let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
-        let copied = unsafe {
+        let _copied = unsafe {
             let ptr = v.as_mut_ptr();
             let slice = std::slice::from_raw_parts_mut(
                 ptr as *mut u8,

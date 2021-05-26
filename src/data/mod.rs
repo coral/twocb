@@ -6,7 +6,7 @@ pub struct DataLayer {
 
 impl DataLayer {
     pub fn new(dbpath: &str) -> Result<DataLayer, &'static str> {
-        let mut db = PickleDb::load(
+        let db = PickleDb::load(
             dbpath,
             PickleDbDumpPolicy::DumpUponRequest,
             SerializationMethod::Json,
@@ -15,7 +15,7 @@ impl DataLayer {
         match db {
             Ok(db) => return Ok(DataLayer { db }),
             Err(_err) => {
-                let mut newdb = PickleDb::new(
+                let newdb = PickleDb::new(
                     dbpath,
                     PickleDbDumpPolicy::AutoDump,
                     SerializationMethod::Json,

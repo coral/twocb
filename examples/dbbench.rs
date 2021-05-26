@@ -1,5 +1,5 @@
 use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 pub fn main() {
     // let mut db = PickleDb::new(
