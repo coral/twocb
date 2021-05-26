@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
 use tokio::time;
 
+#[allow(dead_code)]
 pub struct Producer {
     framerate: f64,
     index: u64,

@@ -7,5 +7,9 @@
         "bufferSize": 1024,
         "channels": 1
     },
-    "database": "files/settings.db"
+    "database": "files/settings.db",
+    "api": {
+        "host": "127.0.0.1",
+        "port": 3030
+    }
 }

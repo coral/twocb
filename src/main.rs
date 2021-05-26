@@ -1,3 +1,4 @@
+mod api;
 mod audio;
 mod config;
 mod data;
@@ -10,19 +11,15 @@ mod producer;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-
 use clap::{AppSettings, Clap};
 use engines::Engine;
-use log::{error};
-use output::Adapter;
+use log::error;
 use pretty_env_logger;
 use std::env;
 
 use std::str::FromStr;
 use tokio::sync::oneshot;
 use tokio::task;
-
-
 
 #[derive(Clap)]
 #[clap(setting = AppSettings::ColoredHelp)]
@@ -97,7 +94,7 @@ pub async fn run(cfg: config::Config) {
     let mut output = output::OutputManager::new();
 
     //////////DONE WITH SETUP
-    for opc_output in cfg.endpoints.opc {
+    for opc_output in &cfg.endpoints.opc {
         let mut opc = output::OPCOutput::new(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::from_str(&opc_output.host).unwrap()),
             opc_output.port as u16,
@@ -137,6 +134,15 @@ pub async fn run(cfg: config::Config) {
     let mut framechan = prod.frame_channel();
     tokio::spawn(async move {
         tokio::join!(prod.start());
+    });
+
+    //API
+    tokio::spawn(async move {
+        api::API::start(SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
+            cfg.api.port,
+        ))
+        .await;
     });
 
     loop {

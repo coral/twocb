@@ -5,6 +5,7 @@ mod screen;
 mod subtract;
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub enum BlendModes {
     Add,
     Subtract,
