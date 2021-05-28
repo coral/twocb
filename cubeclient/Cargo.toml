@@ -1,0 +1,18 @@
+[package]
+name = "cubeclient"
+version = "0.1.0"
+authors = ["coral <jonas@jonasbengtson.se>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "3.0.0-beta.2"
+log = "0.4.14"
+pretty_env_logger = "0.4.0"
+tokio = {version= "1.6.0", features = ["full"] }
+
+
+[target.'cfg(target_arch = "arm")'.dependencies]
+blinkt = {git = "https://github.com/coral/blinkt.git"}
+rppal = "0.12.0"

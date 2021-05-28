@@ -1,33 +1,6 @@
-[package]
-name = "twocb"
-version = "0.1.0"
-authors = ["coral <jonas@jonasbengtson.se>"]
-edition = "2018"
-license = "MIT"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-anyhow = "1.0.39"
-atomic-counter = "1.0.1"
-aubio = "0.2.1"
-clap = "3.0.0-beta.2"
-cpal = "0.13.2"
-crossbeam = "0.8.0"
-crossbeam-channel = "0.5.0"
-futures = "0.3.13"
-glob = "0.3.0"
-log = "0.4.11"
-notify = "4.0.15"
-pickledb = "0.4.1"
-pretty_env_logger = "0.4.0"
-ringbuf = "0.2.3"
-rustchord = "0.3.1"
-rusty_v8 = "0.22.2"
-serde = { version = "1.0.126", features = ["derive"] }
-serde_derive = "1.0.126"
-serde_json = "1.0.64"
-tokio = { version = "1.4.0", features = ["full"] }
-vecmath = "1.0.0"
-warp = "0.3.1"
-zeroconf = "0.7.1"
+[workspace]
+members = [
+    "twocb",
+    "cubeclient",
+]
+default-members = ["twocb"]
