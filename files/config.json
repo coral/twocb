@@ -1,6 +1,6 @@
 {
     "endpoints": {
-        "opc": [{ "host": "127.0.0.1", "port": 7890 }]
+        "opc": [{ "host": "10.0.1.103", "port": 7890 }]
     },
     "audio": {
         "sampleRate": 48000,

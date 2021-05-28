@@ -30,3 +30,4 @@ serde_json = "1.0.64"
 tokio = { version = "1.4.0", features = ["full"] }
 vecmath = "1.0.0"
 warp = "0.3.1"
+zeroconf = "0.7.1"
