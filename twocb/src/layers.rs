@@ -1,10 +1,12 @@
+use crate::data;
+use crate::engines;
 use crate::engines::Pattern;
 use crate::producer;
-use atomic_counter::{AtomicCounter};
+use atomic_counter::AtomicCounter;
+use log::error;
 use std::mem;
 use std::sync::Arc;
 use std::sync::Mutex;
-
 
 pub mod blending;
 
@@ -13,6 +15,8 @@ pub struct Manager {
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
+
+    db: data::DataLayer,
 }
 
 struct LinkAllocation {
@@ -27,15 +31,28 @@ struct LinkResult {
 }
 
 impl Manager {
-    pub fn new() -> Manager {
+    pub fn new(db: data::DataLayer) -> Manager {
         Manager {
             links: vec![],
             buffer: vec![],
             counter: atomic_counter::ConsistentCounter::new(0),
+
+            db,
         }
     }
 
-    pub fn add_link(&mut self, link: Link) {
+    pub async fn add_link(&mut self, link: Link) {
+        for s in &link.steps {
+            match self
+                .db
+                .subscribe(&format!("{}_{}", &link.name, s.pattern.name()))
+                .await
+            {
+                Ok(v) => {}
+                Err(err) => error!("Could not subscribe to key updates: {}", err),
+            }
+        }
+
         self.links.push(LinkAllocation {
             id: self.counter.inc(),
             link: Arc::new(Mutex::new(link)),

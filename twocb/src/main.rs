@@ -72,8 +72,10 @@ pub async fn run(cfg: config::Config) {
     let stream_processing = stream.clone();
     let (tempop, tempoc) = oneshot::channel();
     let (onsetp, onsetc) = oneshot::channel();
+    let tempo_settings = cfg.audio.tempo.clone();
     let _ap = task::spawn_blocking(move || {
         let mut audioprocessing = audio::Processing::new(audiosetting, stream_processing);
+        audioprocessing.set_confidence(tempo_settings.confidence_limit);
         tempop.send(audioprocessing.tempo_channel()).unwrap();
         onsetp.send(audioprocessing.onset_channel()).unwrap();
         audioprocessing.run();
@@ -112,10 +114,10 @@ pub async fn run(cfg: config::Config) {
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
 
-    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
-    dse.bootstrap().unwrap();
-    let patterns = dse.list();
-    dbg!(patterns);
+    // let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
+    // dse.bootstrap().unwrap();
+    // let patterns = dse.list();
+    // dbg!(patterns);
 
     let stp = layers::Step {
         pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
@@ -127,16 +129,16 @@ pub async fn run(cfg: config::Config) {
         blendmode: layers::blending::BlendModes::Add,
     };
 
-    let stp3 = layers::Step {
-        pattern: dse.instantiate_pattern("first.js").unwrap(),
-        blendmode: layers::blending::BlendModes::Add,
-    };
+    // let stp3 = layers::Step {
+    //     pattern: dse.instantiate_pattern("first.js").unwrap(),
+    //     blendmode: layers::blending::BlendModes::Add,
+    // };
 
-    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2, stp3]);
+    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
 
-    let mut manager = layers::Manager::new();
+    let mut manager = layers::Manager::new(db);
 
-    manager.add_link(lnk);
+    manager.add_link(lnk).await;
 
     let mut prod = producer::Producer::new(60.0, map);
 

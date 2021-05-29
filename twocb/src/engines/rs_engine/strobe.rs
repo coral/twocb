@@ -1,9 +1,15 @@
 use crate::engines::pattern;
 use crate::producer;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub struct Strobe {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Settings {
     lit: bool,
+}
+
+pub struct Strobe {
+    s: Settings,
 }
 
 impl pattern::Pattern for Strobe {
@@ -26,10 +32,20 @@ impl pattern::Pattern for Strobe {
         }
         return d;
     }
+
+    fn get_state(&self) -> Vec<u8> {
+        return bincode::serialize(&self.s).unwrap();
+    }
+
+    fn set_state(&mut self, data: Vec<u8>) {
+        self.s = bincode::deserialize(&data).unwrap();
+    }
 }
 
 impl Strobe {
     pub fn new() -> Strobe {
-        Strobe { lit: false }
+        Strobe {
+            s: Settings { lit: false },
+        }
     }
 }

@@ -78,8 +78,7 @@ fn shutdown_runtime() {
 
 struct DynamicPattern {
     path: std::path::PathBuf,
-    tp: tokio::runtime::Runtime,
-
+    //tp: tokio::runtime::Runtime,
     active: bool,
 
     isolate: Option<v8::OwnedIsolate>,
@@ -95,34 +94,41 @@ struct Rt {
 }
 
 impl DynamicPattern {
-    pub async fn new(path: std::path::PathBuf) -> DynamicPattern {
+    pub fn new(path: std::path::PathBuf) -> DynamicPattern {
         let tp = runtime::Builder::new_current_thread().build().unwrap();
-        let (tx, rx) = oneshot::channel();
+        // let (tx, rx) = oneshot::channel();
 
-        tp.spawn(async move {
-            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-            let global_context;
-            {
-                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-                let context = v8::Context::new(handle_scope);
-                global_context = v8::Global::new(handle_scope, context);
-            }
-            tx.send(Rt {
-                isolate,
-                context: global_context,
-            });
-        });
+        // tp.spawn(async move {
+        //     let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+        //     let global_context;
+        //     {
+        //         let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+        //         let context = v8::Context::new(handle_scope);
+        //         global_context = v8::Global::new(handle_scope, context);
+        //     }
+        //     tx.send(Rt {
+        //         isolate,
+        //         context: global_context,
+        //     });
+        // });
 
-        let rtv = rx.await.unwrap();
+        // let rtv = rx.await.unwrap();
+
+        let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+        let global_context;
+        {
+            let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+            let context = v8::Context::new(handle_scope);
+            global_context = v8::Global::new(handle_scope, context);
+        }
 
         let mut d = DynamicPattern {
             path,
 
             active: false,
-            tp,
-
-            isolate: Some(rtv.isolate),
-            context: rtv.context,
+            // tp,
+            isolate: Some(isolate),
+            context: global_context,
             setup: None,
             register: None,
             render: None,
@@ -266,4 +272,9 @@ impl engines::pattern::Pattern for DynamicPattern {
         self.dynamic_process();
         return vec![[1.0, 0.0, 1.0, 1.0]; 864];
     }
+    fn get_state(&self) -> Vec<u8> {
+        return Vec::new();
+    }
+
+    fn set_state(&mut self, data: Vec<u8>) {}
 }

@@ -2307,6 +2307,7 @@ dependencies = [
  "anyhow",
  "atomic-counter",
  "aubio",
+ "bincode",
  "clap 3.0.0-beta.2",
  "cpal",
  "crossbeam",

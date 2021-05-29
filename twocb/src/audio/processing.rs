@@ -7,6 +7,7 @@ pub struct Processing {
     dr: crossbeam_channel::Receiver<Vec<f32>>,
     stream_setting: audio::StreamSetting,
     tempo: Tempo,
+    confidence_limit: f32,
     onset: Onset,
     fft: FFT,
     //chan
@@ -42,6 +43,8 @@ impl Processing {
                 stream_setting.sample_rate,
             )
             .unwrap(),
+
+            confidence_limit: 0.2,
 
             //ONSET
             onset: Onset::new(
@@ -79,13 +82,17 @@ impl Processing {
         return self.onset_tx.subscribe();
     }
 
+    pub fn set_confidence(&mut self, conf: f32) {
+        self.confidence_limit = conf;
+    }
+
     pub fn run(&mut self) {
         loop {
             let audiodata = self.dr.recv().unwrap();
 
             ///TEMPO
             let tempodata = self.tempo.do_result(&audiodata).unwrap();
-            if tempodata > 0.0 {
+            if tempodata > 0.0 && self.tempo.get_confidence() > 0.03 {
                 let t = TempoResult {
                     bpm: self.tempo.get_bpm(),
                     confidence: self.tempo.get_confidence(),

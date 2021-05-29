@@ -1,9 +1,15 @@
 use crate::engines::pattern;
 use crate::pixels::Pixel;
 use crate::producer;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-pub struct FoldedDemo {}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Settings {
+    factor: f64,
+}
+pub struct FoldedDemo {
+    s: Settings,
+}
 
 impl pattern::Pattern for FoldedDemo {
     fn name(&self) -> String {
@@ -13,7 +19,7 @@ impl pattern::Pattern for FoldedDemo {
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let dd = frame.square();
         let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
-        let factor = 12.0;
+        let factor = self.s.factor;
 
         let positions = frame.colorchord.folded.len();
         if positions > 1 {
@@ -34,19 +40,22 @@ impl pattern::Pattern for FoldedDemo {
                 }
             }
         }
-        // let mut d = vec![[dd, dd, dd, 1.0]; 864];
-        // let mut i = 0;
-        // for x in &frame.colorchord.folded {
-        //     let m = (x.clone() * 10.0) as f64;
-        //     d[i] = [m, m, m, 1.0];
-        //     i = i + 1;
-        // }
         return d;
+    }
+
+    fn get_state(&self) -> Vec<u8> {
+        return bincode::serialize(&self.s).unwrap();
+    }
+
+    fn set_state(&mut self, data: Vec<u8>) {
+        self.s = bincode::deserialize(&data).unwrap();
     }
 }
 
 impl FoldedDemo {
     pub fn new() -> FoldedDemo {
-        FoldedDemo {}
+        FoldedDemo {
+            s: Settings { factor: 1.0 },
+        }
     }
 }

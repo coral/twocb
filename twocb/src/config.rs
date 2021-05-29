@@ -29,6 +29,14 @@ pub struct Audio {
     pub sample_rate: u32,
     pub buffer_size: u32,
     pub channels: u16,
+
+    pub tempo: Tempo,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Tempo {
+    pub confidence_limit: f32,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
