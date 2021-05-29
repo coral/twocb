@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
 use std::sync::Arc;
+use tokio::runtime;
+use tokio::sync::oneshot;
 
 pub struct DynamicEngine {
     inventory: HashMap<String, Box<dyn Fn() -> Box<dyn engines::pattern::Pattern>>>,
@@ -76,6 +78,7 @@ fn shutdown_runtime() {
 
 struct DynamicPattern {
     path: std::path::PathBuf,
+    tp: tokio::runtime::Runtime,
 
     active: bool,
 
@@ -86,22 +89,40 @@ struct DynamicPattern {
     render: Option<v8::Global<v8::Function>>,
 }
 
+struct Rt {
+    isolate: v8::OwnedIsolate,
+    context: v8::Global<v8::Context>,
+}
+
 impl DynamicPattern {
-    pub fn new(path: std::path::PathBuf) -> DynamicPattern {
-        let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-        let global_context;
-        {
-            let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(handle_scope);
-            global_context = v8::Global::new(handle_scope, context);
-        }
+    pub async fn new(path: std::path::PathBuf) -> DynamicPattern {
+        let tp = runtime::Builder::new_current_thread().build().unwrap();
+        let (tx, rx) = oneshot::channel();
+
+        tp.spawn(async move {
+            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+            let global_context;
+            {
+                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+                let context = v8::Context::new(handle_scope);
+                global_context = v8::Global::new(handle_scope, context);
+            }
+            tx.send(Rt {
+                isolate,
+                context: global_context,
+            });
+        });
+
+        let rtv = rx.await.unwrap();
+
         let mut d = DynamicPattern {
             path,
 
             active: false,
+            tp,
 
-            isolate: Some(isolate),
-            context: global_context,
+            isolate: Some(rtv.isolate),
+            context: rtv.context,
             setup: None,
             register: None,
             render: None,
@@ -242,7 +263,7 @@ impl engines::pattern::Pattern for DynamicPattern {
         // This needs to be called on the same thread as we initialized the pattern on.
         // Really sad
         // But w/e we can come up with some dumb thread pool.
-        //self.dynamic_process();
+        self.dynamic_process();
         return vec![[1.0, 0.0, 1.0, 1.0]; 864];
     }
 }

@@ -7,6 +7,7 @@ pub struct Config {
     pub audio: Audio,
     pub database: String,
     pub api: Api,
+    pub mapping: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]

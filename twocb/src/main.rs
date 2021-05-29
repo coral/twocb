@@ -107,26 +107,38 @@ pub async fn run(cfg: config::Config) {
         }
     }
 
+    let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
+
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
 
-    //let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
-    //dse.bootstrap().unwrap();
-    //let patterns = dse.list();
-    //dbg!(patterns);
+    let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
+    dse.bootstrap().unwrap();
+    let patterns = dse.list();
+    dbg!(patterns);
 
     let stp = layers::Step {
         pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
         blendmode: layers::blending::BlendModes::Add,
     };
 
-    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp]);
+    let stp2 = layers::Step {
+        pattern: rse.instantiate_pattern("strobe").unwrap(),
+        blendmode: layers::blending::BlendModes::Add,
+    };
+
+    let stp3 = layers::Step {
+        pattern: dse.instantiate_pattern("first.js").unwrap(),
+        blendmode: layers::blending::BlendModes::Add,
+    };
+
+    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2, stp3]);
 
     let mut manager = layers::Manager::new();
 
     manager.add_link(lnk);
 
-    let mut prod = producer::Producer::new(60.0);
+    let mut prod = producer::Producer::new(60.0, map);
 
     prod.attach_colorchord(colorchord_channel);
     prod.attach_tempo(tempo_channel);
@@ -152,33 +164,3 @@ pub async fn run(cfg: config::Config) {
         output.write(&rst);
     }
 }
-
-// pub async fn main() {
-
-//     // let join = task::spawn(async {
-//     //     let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
-//     //     let mut p = patterns::dynamic::Pattern::create("examples/debug.js", map.clone());
-//     //     p.load();
-//     //     p.setup();
-//     //     p.register();
-//     //     p.process()
-//     // });
-//     // let mut p = patterns::dynamic::Pattern::create("examples/debug.js", map.clone());
-//     // p.load();
-//     // p.setup();
-//     // p.register();
-//     // let result = join.await;
-//     // dbg!(result);
-//     // let now = Instant::now();
-//     // let invocations = 10000;
-//     // for _ in 0..invocations {
-//     //     let mut m = p.process();
-//     //     m[0] = 1.0;
-//     //     dbg!(m);
-//     // }
-//     // println!(
-//     //     "Time: {}ms, {} invocations per second,",
-//     //     now.elapsed().as_millis(),
-//     //     invocations as f64 / (now.elapsed().as_millis() as f64 / 1000.)
-//     // );
-// }

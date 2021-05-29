@@ -1,4 +1,5 @@
 use crate::audio;
+use crate::pixels::Pixel;
 use log::{debug, warn};
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
@@ -16,6 +17,8 @@ pub struct Producer {
     cycletimer: Instant,
     last_frame: Instant,
 
+    mapping: Vec<Pixel>,
+
     colorchord_channel: tokio::sync::broadcast::Receiver<audio::colorchord::NoteResult>,
     tempo_channel: tokio::sync::broadcast::Receiver<audio::TempoResult>,
     tempo_enabled: bool,
@@ -28,7 +31,7 @@ pub struct Producer {
 }
 
 impl Producer {
-    pub fn new(framerate: f64) -> Producer {
+    pub fn new(framerate: f64, mapping: Vec<Pixel>) -> Producer {
         Producer {
             framerate,
             index: 0,
@@ -38,6 +41,8 @@ impl Producer {
             start: Instant::now(),
             cycletimer: Instant::now(),
             last_frame: Instant::now(),
+
+            mapping,
 
             colorchord_channel: broadcast::channel(1).1,
             tempo_channel: broadcast::channel(10).1,
@@ -85,6 +90,8 @@ impl Producer {
 
                 colorchord: self.colorchord_data.clone(),
                 tempo: self.tempo_data.clone(),
+
+                mapping: self.mapping.clone(),
             })
             .is_err()
         {
@@ -144,6 +151,8 @@ pub struct Frame {
 
     pub colorchord: audio::colorchord::NoteResult,
     pub tempo: audio::TempoResult,
+
+    pub mapping: Vec<Pixel>,
 }
 
 #[allow(dead_code)]
@@ -161,6 +170,14 @@ impl Frame {
             return 0.0;
         } else {
             return 1.0;
+        }
+    }
+
+    pub fn squarebool(&self) -> bool {
+        if self.phase <= 0.5 {
+            return false;
+        } else {
+            return true;
         }
     }
 

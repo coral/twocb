@@ -1,4 +1,5 @@
 use crate::engines::pattern;
+use crate::pixels::Pixel;
 use crate::producer;
 use std::sync::Arc;
 
@@ -11,13 +12,35 @@ impl pattern::Pattern for FoldedDemo {
 
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let dd = frame.square();
-        let mut d = vec![[dd, dd, dd, 1.0]; 864];
-        let mut i = 0;
-        for x in &frame.colorchord.folded {
-            let m = (x.clone() * 10.0) as f64;
-            d[i] = [m, m, m, 1.0];
-            i = i + 1;
+        let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
+        let factor = 12.0;
+
+        let positions = frame.colorchord.folded.len();
+        if positions > 1 {
+            for (i, pixel) in frame.mapping.iter().enumerate() {
+                let m = (frame.colorchord.folded
+                    [((positions as f64) * pixel.position_in_tube()).floor() as usize]
+                    .clone() as f64)
+                    * factor;
+                //dbg!(((positions as f64) * pixel.position_in_tube()).floor() as usize);
+                if frame.squarebool() {
+                    if pixel.top() {
+                        d[i] = [m * (dd * 5.0 + 1.0), m, m, m];
+                    }
+                } else {
+                    if pixel.bottom() {
+                        d[i] = [m, 0.0, m, m];
+                    }
+                }
+            }
         }
+        // let mut d = vec![[dd, dd, dd, 1.0]; 864];
+        // let mut i = 0;
+        // for x in &frame.colorchord.folded {
+        //     let m = (x.clone() * 10.0) as f64;
+        //     d[i] = [m, m, m, 1.0];
+        //     i = i + 1;
+        // }
         return d;
     }
 }

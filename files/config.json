@@ -1,6 +1,6 @@
 {
     "endpoints": {
-        "opc": [{ "host": "10.0.1.103", "port": 7890 }]
+        "opc": [{ "host": "127.0.0.1", "port": 7890 }]
     },
     "audio": {
         "sampleRate": 48000,
@@ -11,5 +11,6 @@
     "api": {
         "host": "127.0.0.1",
         "port": 3030
-    }
+    },
+    "mapping": "v6.json"
 }

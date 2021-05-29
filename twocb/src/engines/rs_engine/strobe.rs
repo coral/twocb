@@ -11,15 +11,20 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
-        let mut f = 0.0;
-        if self.lit {
-            f = 1.0;
-            self.lit = false;
-        } else {
-            self.lit = true;
+    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+        let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
+        for (i, pixel) in frame.mapping.iter().enumerate() {
+            if frame.squarebool() {
+                if pixel.front() {
+                    d[i] = [1.0, 1.0, 1.0, 1.0];
+                }
+            } else {
+                if pixel.back() {
+                    d[i] = [1.0, 1.0, 1.0, 1.0];
+                }
+            }
         }
-        return vec![[f, f, f, 1.0]; 864];
+        return d;
     }
 }
 
