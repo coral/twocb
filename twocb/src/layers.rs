@@ -41,14 +41,17 @@ impl Manager {
         }
     }
 
-    pub async fn add_link(&mut self, link: Link) {
-        for s in &link.steps {
-            match self
-                .db
-                .subscribe(&format!("{}_{}", &link.name, s.pattern.name()))
-                .await
-            {
-                Ok(v) => {}
+    pub async fn add_link(&mut self, mut link: Link) {
+        for s in link.steps.iter_mut() {
+            let key = &format!("{}_{}", &link.name, s.pattern.name());
+            match self.db.subscribe(key).await {
+                Ok(v) => match self.db.get_state(key) {
+                    Some(d) => s.pattern.set_state(d),
+                    None => {
+                        let newstate = &s.pattern.get_state();
+                        self.db.write_state(key, &newstate);
+                    }
+                },
                 Err(err) => error!("Could not subscribe to key updates: {}", err),
             }
         }
