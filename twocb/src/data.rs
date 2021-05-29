@@ -1,6 +1,7 @@
 use anyhow::Result;
 use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
 use std::collections::HashMap;
+use std::time::Duration;
 use tokio::sync::mpsc;
 
 pub struct DataLayer {
@@ -12,7 +13,7 @@ impl DataLayer {
     pub fn new(dbpath: &str) -> Result<DataLayer, &'static str> {
         let db = PickleDb::load(
             dbpath,
-            PickleDbDumpPolicy::DumpUponRequest,
+            PickleDbDumpPolicy::PeriodicDump(Duration::from_secs(30)),
             SerializationMethod::Json,
         );
 
@@ -61,21 +62,5 @@ impl DataLayer {
 
     pub fn write_state(&mut self, key: &str, value: &[u8]) {
         self.db.set(key, &value);
-        self.db.dump();
     }
-
-    //async fn seed_key(&self, key: &str) -> anyhow::Result<()> {
-    // match self.db.get::<Vec<u8>>(key) {
-    //     Some(data) => match self.subscribed_keys.get(key) {
-    //         Some(sub) => match sub.send(data).await {
-    //             Ok(()) => return Ok(())
-    //             Err(v) => {}
-    //         },
-    //         None => return println!("failed to seed key: {}", key),
-    //     },
-    //     None => {
-    //         println!("Could not find key in db: {}", key)
-    //     }
-    // }
-    //}
 }
