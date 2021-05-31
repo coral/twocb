@@ -150,8 +150,8 @@ pub async fn run(cfg: config::Config) {
     });
 
     //API
-    let mut api = api::API::new(db.clone());
     tokio::spawn(async move {
+        let mut api = api::API::new(db.clone());
         api.start(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
             cfg.api.port,
