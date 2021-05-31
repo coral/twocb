@@ -3,6 +3,7 @@ use sled;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
+#[derive(Clone)]
 pub struct DataLayer {
     db: sled::Db,
 

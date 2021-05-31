@@ -55,7 +55,7 @@ fn main() {
 pub async fn run(cfg: config::Config) {
     //Data layer
     let mut db = data::DataLayer::new(&cfg.database).unwrap();
-    dbg!(db.get_states());
+
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
@@ -135,7 +135,7 @@ pub async fn run(cfg: config::Config) {
 
     let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
 
-    let mut manager = layers::Manager::new(db);
+    let mut manager = layers::Manager::new(db.clone());
 
     manager.add_link(lnk).await;
 
@@ -150,8 +150,9 @@ pub async fn run(cfg: config::Config) {
     });
 
     //API
+    let mut api = api::API::new(db.clone());
     tokio::spawn(async move {
-        api::API::start(SocketAddr::new(
+        api.start(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
             cfg.api.port,
         ))
