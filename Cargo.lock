@@ -2322,6 +2322,7 @@ dependencies = [
  "rustchord",
  "rusty_v8",
  "serde",
+ "serde_cbor",
  "serde_derive",
  "serde_json",
  "tokio",

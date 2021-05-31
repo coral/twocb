@@ -34,11 +34,11 @@ impl pattern::Pattern for Strobe {
     }
 
     fn get_state(&self) -> Vec<u8> {
-        return bincode::serialize(&self.s).unwrap();
+        return serde_json::to_vec(&self.s).unwrap();
     }
 
     fn set_state(&mut self, data: Vec<u8>) {
-        self.s = bincode::deserialize(&data).unwrap();
+        self.s = serde_json::from_slice(&data).unwrap();
     }
 }
 

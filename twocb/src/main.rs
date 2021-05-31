@@ -55,7 +55,6 @@ fn main() {
 pub async fn run(cfg: config::Config) {
     //Data layer
     let mut db = data::DataLayer::new(&cfg.database).unwrap();
-    db.woo();
 
     ////AUDIOSHIT
 

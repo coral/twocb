@@ -38,14 +38,6 @@ impl DataLayer {
         }
     }
 
-    pub fn woo(&mut self) {
-        self.db.set("key1", &100).unwrap();
-        println!(
-            "The value of key1 is: {}",
-            self.db.get::<i32>("key1").unwrap()
-        );
-    }
-
     pub async fn subscribe(&mut self, key: &str) -> Result<mpsc::Receiver<Vec<u8>>, &'static str> {
         let (tx, mut rx) = mpsc::channel(10);
         match self.subscribed_keys.insert(key.to_string(), tx) {
