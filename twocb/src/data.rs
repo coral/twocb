@@ -1,39 +1,29 @@
 use anyhow::Result;
-use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+use sled;
 use std::collections::HashMap;
-use std::time::Duration;
 use tokio::sync::mpsc;
 
 pub struct DataLayer {
-    db: PickleDb,
+    db: sled::Db,
+
+    state: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
 
 impl DataLayer {
     pub fn new(dbpath: &str) -> Result<DataLayer, &'static str> {
-        let db = PickleDb::load(
-            dbpath,
-            PickleDbDumpPolicy::PeriodicDump(Duration::from_secs(30)),
-            SerializationMethod::Json,
-        );
-
-        match db {
+        match sled::open(dbpath) {
             Ok(db) => {
+                let state = db.open_tree("state").unwrap();
                 return Ok(DataLayer {
                     db,
-                    subscribed_keys: HashMap::new(),
-                })
-            }
-            Err(_err) => {
-                let newdb = PickleDb::new(
-                    dbpath,
-                    PickleDbDumpPolicy::AutoDump,
-                    SerializationMethod::Json,
-                );
-                return Ok(DataLayer {
-                    db: newdb,
+                    state,
                     subscribed_keys: HashMap::new(),
                 });
+            }
+            Err(err) => {
+                dbg!(err);
+                return Err("FML");
             }
         }
     }
@@ -49,10 +39,36 @@ impl DataLayer {
     pub async fn seed_state() {}
 
     pub fn get_state(&self, key: &str) -> Option<Vec<u8>> {
-        self.db.get::<Vec<u8>>(key)
+        match self.state.get(key) {
+            Ok(v) => match v {
+                Some(d) => {
+                    return Some(d.to_vec());
+                }
+                None => return None,
+            },
+            Err(_e) => return None,
+        }
+    }
+
+    pub fn get_states(&self) -> HashMap<String, String> {
+        let mut packaged_states = HashMap::new();
+
+        for state in self.state.iter() {
+            match state {
+                Ok((k, v)) => {
+                    let key = std::str::from_utf8(&k).unwrap().to_string();
+                    let val = std::str::from_utf8(&v).unwrap().to_string();
+
+                    packaged_states.insert(key, val);
+                }
+                _ => {}
+            }
+        }
+
+        packaged_states
     }
 
     pub fn write_state(&mut self, key: &str, value: &[u8]) {
-        self.db.set(key, &value);
+        self.state.insert(key, value);
     }
 }

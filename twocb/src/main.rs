@@ -55,7 +55,7 @@ fn main() {
 pub async fn run(cfg: config::Config) {
     //Data layer
     let mut db = data::DataLayer::new(&cfg.database).unwrap();
-
+    dbg!(db.get_states());
     ////AUDIOSHIT
 
     let audiosetting = audio::StreamSetting {
