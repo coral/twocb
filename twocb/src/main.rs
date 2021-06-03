@@ -18,6 +18,7 @@ use pretty_env_logger;
 use std::env;
 
 use std::str::FromStr;
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -55,6 +56,7 @@ fn main() {
 pub async fn run(cfg: config::Config) {
     //Data layer
     let mut db = data::DataLayer::new(&cfg.database).unwrap();
+    let mut dbarc = Arc::new(db.clone());
 
     ////AUDIOSHIT
 
@@ -151,12 +153,13 @@ pub async fn run(cfg: config::Config) {
 
     //API
     tokio::spawn(async move {
-        let mut api = api::API::new(db.clone());
-        api.start(SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
-            cfg.api.port,
-        ))
-        .await;
+        // api::start(SocketAddr::new(
+        //     IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
+        //     cfg.api.port,
+        // ))
+        // .await;
+
+        api::start(dbarc).await;
     });
 
     loop {

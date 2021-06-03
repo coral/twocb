@@ -1,34 +1,32 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
-#[macro_use]
-extern crate rocket;
-
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
-}
 use crate::data;
+use actix_web::{web, App, HttpRequest, HttpServer, Responder};
 use std::net::SocketAddr;
+use std::sync::Arc;
 
-pub struct API {
-    db: data::DataLayer,
+// #[get("/")]
+// async fn index(data: web::Data<data::DataLayer>) -> String {
+//     //let app_name = &data.app_name; // <- get app_name
+
+//     //let kek = &data.get_states();
+//     //serde_json::to_string(kek).unwrap()
+//     format!("Hello")
+// }
+
+async fn hello(data: web::Data<Arc<data::DataLayer>>) -> String {
+    //let app_name = &data.app_name; // <- get app_name
+
+    let kek = &data.get_states();
+    serde_json::to_string(kek).unwrap()
+    //format!("Hello !") // <- response with app_name
 }
 
-impl API {
-    pub fn new(db: data::DataLayer) -> API {
-        API { db }
-    }
-
-    pub async fn start(&'static mut self, addr: SocketAddr) {
-        rocket::ignite().mount("/", routes![index]).launch();
-        // let routes = warp::any().map(|| {
-        //     let mut resp = String::new();
-        //     for (key, value) in self.db.get_states() {
-        //         resp.push_str(&format!("{}: {} \n", &key, &value));
-        //     }
-        //     return resp;
-        // });
-
-        // warp::serve(routes).run(addr).await;
-    }
+pub async fn start(state: Arc<data::DataLayer>) -> std::io::Result<()> {
+    HttpServer::new(move || {
+        App::new()
+            .data(state.clone())
+            .route("/", web::get().to(hello))
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await
 }
