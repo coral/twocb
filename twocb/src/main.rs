@@ -79,8 +79,6 @@ pub async fn bootstrap(cfg: config::Config) {
 }
 
 pub async fn run(cfg: config::Config, db: data::DataLayer) {
-    //Data layer
-
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
         buffer_size: cfg.audio.buffer_size,
