@@ -159,7 +159,7 @@ pub async fn run(cfg: config::Config) {
         // ))
         // .await;
 
-        api::start(dbarc).await;
+        api::start(dbarc);
     });
 
     loop {

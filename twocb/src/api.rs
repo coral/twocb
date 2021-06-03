@@ -20,6 +20,7 @@ async fn hello(data: web::Data<Arc<data::DataLayer>>) -> String {
     //format!("Hello !") // <- response with app_name
 }
 
+#[actix_web::main]
 pub async fn start(state: Arc<data::DataLayer>) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
