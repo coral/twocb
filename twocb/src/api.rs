@@ -3,15 +3,6 @@ use actix_web::{web, App, HttpRequest, HttpServer, Responder};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-// #[get("/")]
-// async fn index(data: web::Data<data::DataLayer>) -> String {
-//     //let app_name = &data.app_name; // <- get app_name
-
-//     //let kek = &data.get_states();
-//     //serde_json::to_string(kek).unwrap()
-//     format!("Hello")
-// }
-
 async fn hello(data: web::Data<Arc<data::DataLayer>>) -> String {
     //let app_name = &data.app_name; // <- get app_name
 

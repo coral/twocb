@@ -11,6 +11,8 @@ pub struct DataLayer {
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
 
+unsafe impl Sync for DataLayer {}
+
 impl DataLayer {
     pub fn new(dbpath: &str) -> Result<DataLayer, &'static str> {
         match sled::open(dbpath) {

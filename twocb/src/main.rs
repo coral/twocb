@@ -49,16 +49,37 @@ fn main() {
         .build()
         .unwrap()
         .block_on(async {
-            run(cfg).await;
+            bootstrap(cfg).await;
         })
 }
 
-pub async fn run(cfg: config::Config) {
-    //Data layer
+pub async fn bootstrap(cfg: config::Config) {
     let mut db = data::DataLayer::new(&cfg.database).unwrap();
     let mut dbarc = Arc::new(db.clone());
 
-    ////AUDIOSHIT
+    //API
+    let api = tokio::spawn(async move {
+        // api::start(SocketAddr::new(
+        //     IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
+        //     cfg.api.port,
+        // ))
+        // .await;
+
+        api::start(dbarc);
+    });
+
+    let processing = tokio::spawn(async move {
+        run(cfg, db);
+    });
+
+    tokio::select! {
+      _ = api => 0,
+      _ = processing => 0
+    };
+}
+
+pub async fn run(cfg: config::Config, db: data::DataLayer) {
+    //Data layer
 
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
@@ -118,7 +139,7 @@ pub async fn run(cfg: config::Config) {
     // let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
     // dse.bootstrap().unwrap();
     // let patterns = dse.list();
-    // dbg!(patterns);
+    // b!(patterns);
 
     let stp = layers::Step {
         pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
@@ -149,17 +170,6 @@ pub async fn run(cfg: config::Config) {
     let mut framechan = prod.frame_channel();
     tokio::spawn(async move {
         tokio::join!(prod.start());
-    });
-
-    //API
-    tokio::spawn(async move {
-        // api::start(SocketAddr::new(
-        //     IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
-        //     cfg.api.port,
-        // ))
-        // .await;
-
-        api::start(dbarc);
     });
 
     loop {
