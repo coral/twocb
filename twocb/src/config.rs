@@ -1,4 +1,5 @@
 use std::fs;
+use std::sync::Arc;
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -46,8 +47,8 @@ pub struct Api {
     pub port: u16,
 }
 
-pub fn load_config(path: &str) -> anyhow::Result<Config> {
+pub fn load_config(path: &str) -> anyhow::Result<Arc<Config>> {
     let data = fs::read_to_string(path)?;
     let cfg: Config = serde_json::from_str(&data)?;
-    Ok(cfg)
+    Ok(Arc::new(cfg))
 }

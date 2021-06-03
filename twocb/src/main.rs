@@ -34,6 +34,17 @@ fn main() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
+    //Start the tokio runtime
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            bootstrap().await;
+        })
+}
+
+pub async fn bootstrap() {
     let opts: Opts = Opts::parse();
     let cfg = match config::load_config(&opts.config) {
         Ok(cfg) => cfg,
@@ -43,33 +54,24 @@ fn main() {
         }
     };
 
-    //Start the tokio runtime
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            bootstrap(cfg).await;
-        })
-}
-
-pub async fn bootstrap(cfg: config::Config) {
-    let mut db = data::DataLayer::new(&cfg.database).unwrap();
+    let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
     let mut dbarc = Arc::new(db.clone());
 
     //API
+    let api_cfg = cfg.clone();
     let api = tokio::spawn(async move {
-        // api::start(SocketAddr::new(
-        //     IpAddr::V4(Ipv4Addr::from_str(&cfg.api.host).unwrap()),
-        //     cfg.api.port,
-        // ))
-        // .await;
-
-        api::start(dbarc);
+        api::start(
+            SocketAddr::new(
+                IpAddr::V4(Ipv4Addr::from_str(&api_cfg.api.host).unwrap()),
+                api_cfg.api.port,
+            ),
+            dbarc,
+        );
     });
 
+    let prc_cfg = cfg.clone();
     let processing = tokio::spawn(async move {
-        run(cfg, db);
+        run(prc_cfg, db);
     });
 
     tokio::select! {
@@ -78,7 +80,7 @@ pub async fn bootstrap(cfg: config::Config) {
     };
 }
 
-pub async fn run(cfg: config::Config, db: data::DataLayer) {
+pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
         buffer_size: cfg.audio.buffer_size,

@@ -12,13 +12,14 @@ async fn hello(data: web::Data<Arc<data::DataLayer>>) -> String {
 }
 
 #[actix_web::main]
-pub async fn start(state: Arc<data::DataLayer>) -> std::io::Result<()> {
+pub async fn start(socket: SocketAddr, state: Arc<data::DataLayer>) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(state.clone())
             .route("/", web::get().to(hello))
     })
-    .bind("127.0.0.1:8080")?
+    .bind(socket)?
+    .workers(4)
     .run()
     .await
 }
