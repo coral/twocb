@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 pub struct DataLayer {
     db: sled::Db,
 
+    layers: sled::Tree,
     state: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
@@ -18,9 +19,11 @@ impl DataLayer {
         match sled::open(dbpath) {
             Ok(db) => {
                 let state = db.open_tree("state").unwrap();
+                let layers = db.open_tree("layers").unwrap();
                 return Ok(DataLayer {
                     db,
                     state,
+                    layers,
                     subscribed_keys: HashMap::new(),
                 });
             }
@@ -35,7 +38,7 @@ impl DataLayer {
         let (tx, mut rx) = mpsc::channel(10);
         match self.subscribed_keys.insert(key.to_string(), tx) {
             None => Ok(rx),
-            Some(v) => Err("key already exists"),
+            Some(_) => Err("key already exists"),
         }
     }
 

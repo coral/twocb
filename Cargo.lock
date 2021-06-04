@@ -2588,6 +2588,7 @@ dependencies = [
  "crossbeam-channel",
  "futures",
  "glob",
+ "lazy_static",
  "log",
  "notify",
  "pretty_env_logger",

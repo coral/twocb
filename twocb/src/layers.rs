@@ -1,22 +1,21 @@
 use crate::data;
-use crate::engines;
-use crate::engines::Pattern;
+use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::producer;
 use atomic_counter::AtomicCounter;
 use log::error;
+use std::collections::HashMap;
 use std::mem;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, RwLock};
 
 pub mod blending;
 
-pub struct Manager {
+pub struct Compositor {
     links: Vec<LinkAllocation>,
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
 
-    db: data::DataLayer,
+    db: &'static mut data::DataLayer,
 }
 
 struct LinkAllocation {
@@ -30,9 +29,9 @@ struct LinkResult {
     output: Vec<vecmath::Vector4<f64>>,
 }
 
-impl Manager {
-    pub fn new(db: data::DataLayer) -> Manager {
-        Manager {
+impl Compositor {
+    pub fn new(db: &'static mut data::DataLayer) -> Compositor {
+        Compositor {
             links: vec![],
             buffer: vec![],
             counter: atomic_counter::ConsistentCounter::new(0),
@@ -141,3 +140,20 @@ pub struct Step {
 //     fn query_requirements(&self);
 //     fn render(&self);
 // }
+
+pub struct Controller {
+    rse: RSEngine,
+
+    db: Arc<RwLock<data::DataLayer>>,
+}
+
+impl Controller {
+    pub fn new(db: Arc<RwLock<data::DataLayer>>) -> Controller {
+        let mut rse = RSEngine::new();
+        rse.bootstrap().unwrap();
+
+        return Controller { rse, db };
+    }
+
+    pub fn bootstrap(&mut self) {}
+}

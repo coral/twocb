@@ -45,28 +45,29 @@ fn main() {
     };
 
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
-    let mut dbarc = Arc::new(RwLock::new(db.clone()));
+    //let mut dbarc = Arc::new(RwLock::new(db.clone()));
 
     let api_cfg = cfg.clone();
+    let api_db = db.clone();
     thread::spawn(move || {
         api::start(
             SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::from_str(&api_cfg.api.host).unwrap()),
                 api_cfg.api.port,
             ),
-            dbarc,
+            api_db,
         )
         .expect("kek");
     });
 
     let prc_cfg = cfg.clone();
-
     //Start the tokio runtime
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async move {
+            //tokio::spawn(async move { order(order_db).await });
             run(prc_cfg, db).await;
         });
 }
@@ -122,7 +123,8 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
         }
     }
 
-    let map = pixels::Mapping::load_from_file("files/mappings/v6.json").unwrap();
+    // let mut dbarc = Arc::new(RwLock::new(db));
+    // let layer_controller = layers::Controller::new(dbarc.clone()).bootstrap;
 
     let mut rse = engines::RSEngine::new();
     rse.bootstrap().unwrap();
@@ -149,10 +151,12 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
 
     let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
 
-    let mut manager = layers::Manager::new(db.clone());
+    let mut manager = layers::Compositor::new(db.clone());
 
     manager.add_link(lnk).await;
 
+    let map =
+        pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");
     let mut prod = producer::Producer::new(60.0, map);
 
     prod.attach_colorchord(colorchord_channel);
