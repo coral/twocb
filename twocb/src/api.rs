@@ -19,6 +19,7 @@ pub async fn start(socket: SocketAddr, state: Arc<data::DataLayer>) -> std::io::
             .route("/", web::get().to(hello))
     })
     .bind(socket)?
+    .disable_signals()
     .workers(4)
     .run()
     .await

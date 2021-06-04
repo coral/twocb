@@ -16,6 +16,7 @@ use engines::Engine;
 use log::error;
 use pretty_env_logger;
 use std::env;
+use std::thread;
 
 use std::str::FromStr;
 use std::sync::Arc;
@@ -34,17 +35,6 @@ fn main() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
-    //Start the tokio runtime
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            bootstrap().await;
-        })
-}
-
-pub async fn bootstrap() {
     let opts: Opts = Opts::parse();
     let cfg = match config::load_config(&opts.config) {
         Ok(cfg) => cfg,
@@ -57,9 +47,8 @@ pub async fn bootstrap() {
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
     let mut dbarc = Arc::new(db.clone());
 
-    //API
     let api_cfg = cfg.clone();
-    let api = tokio::spawn(async move {
+    let handler = thread::spawn(move || {
         api::start(
             SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::from_str(&api_cfg.api.host).unwrap()),
@@ -70,14 +59,23 @@ pub async fn bootstrap() {
     });
 
     let prc_cfg = cfg.clone();
-    let processing = tokio::spawn(async move {
-        run(prc_cfg, db);
-    });
+    // let processing = tokio::spawn(async move {
+    //     run(prc_cfg, db);
+    // });
 
-    tokio::select! {
-      _ = api => 0,
-      _ = processing => 0
-    };
+    //Start the tokio runtime
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async move {
+            run(prc_cfg, db).await;
+        });
+
+    // tokio::select! {
+    //   _ = api => 0,
+    //   _ = processing => 0
+    // };
 }
 
 pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
