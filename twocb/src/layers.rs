@@ -5,17 +5,16 @@ use atomic_counter::AtomicCounter;
 use log::error;
 use std::collections::HashMap;
 use std::mem;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 pub mod blending;
-
 pub struct Compositor {
     links: Vec<LinkAllocation>,
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
 
-    db: &'static mut data::DataLayer,
+    db: data::DataLayer,
 }
 
 struct LinkAllocation {
@@ -30,7 +29,7 @@ struct LinkResult {
 }
 
 impl Compositor {
-    pub fn new(db: &'static mut data::DataLayer) -> Compositor {
+    pub fn new(db: data::DataLayer) -> Compositor {
         Compositor {
             links: vec![],
             buffer: vec![],
@@ -144,15 +143,21 @@ pub struct Step {
 pub struct Controller {
     rse: RSEngine,
 
-    db: Arc<RwLock<data::DataLayer>>,
+    compositor: tokio::sync::Mutex<Compositor>,
+    db: data::DataLayer,
 }
 
 impl Controller {
-    pub fn new(db: Arc<RwLock<data::DataLayer>>) -> Controller {
+    pub fn new(db: data::DataLayer, compositor: tokio::sync::Mutex<Compositor>) -> Controller {
         let mut rse = RSEngine::new();
         rse.bootstrap().unwrap();
 
-        return Controller { rse, db };
+        return Controller {
+            rse,
+
+            compositor,
+            db,
+        };
     }
 
     pub fn bootstrap(&mut self) {}

@@ -61,6 +61,7 @@ fn main() {
     });
 
     let prc_cfg = cfg.clone();
+    let run_db = db.clone();
     //Start the tokio runtime
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -123,6 +124,8 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
         }
     }
 
+    let mut compositor = tokio::sync::Mutex::new(layers::Compositor::new(db.clone()));
+    layers::Controller::new(db.clone(), compositor);
     // let mut dbarc = Arc::new(RwLock::new(db));
     // let layer_controller = layers::Controller::new(dbarc.clone()).bootstrap;
 
@@ -151,9 +154,7 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
 
     let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
 
-    let mut manager = layers::Compositor::new(db.clone());
-
-    manager.add_link(lnk).await;
+    compositor.lock().await.add_link(lnk).await;
 
     let map =
         pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");
@@ -170,7 +171,7 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     loop {
         let frame_data = framechan.recv().await.unwrap();
 
-        let rst = manager.render(frame_data).await;
+        let rst = compositor.lock().await.render(frame_data).await;
         output.write(&rst);
     }
 }

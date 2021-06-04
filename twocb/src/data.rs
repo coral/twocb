@@ -77,4 +77,6 @@ impl DataLayer {
     pub fn write_state(&mut self, key: &str, value: &[u8]) {
         self.state.insert(key, value);
     }
+
+    //pub fn get_layers() -> Vec<u8> {}
 }
