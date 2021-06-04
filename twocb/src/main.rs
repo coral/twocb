@@ -124,8 +124,8 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
         }
     }
 
-    let mut compositor = tokio::sync::Mutex::new(layers::Compositor::new(db.clone()));
-    layers::Controller::new(db.clone(), compositor);
+    let mut compositor = Arc::new(tokio::sync::Mutex::new(layers::Compositor::new(db.clone())));
+    layers::Controller::new(db.clone(), compositor.clone());
     // let mut dbarc = Arc::new(RwLock::new(db));
     // let layer_controller = layers::Controller::new(dbarc.clone()).bootstrap;
 

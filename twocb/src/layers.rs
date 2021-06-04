@@ -143,12 +143,12 @@ pub struct Step {
 pub struct Controller {
     rse: RSEngine,
 
-    compositor: tokio::sync::Mutex<Compositor>,
+    compositor: Arc<tokio::sync::Mutex<Compositor>>,
     db: data::DataLayer,
 }
 
 impl Controller {
-    pub fn new(db: data::DataLayer, compositor: tokio::sync::Mutex<Compositor>) -> Controller {
+    pub fn new(db: data::DataLayer, compositor: Arc<tokio::sync::Mutex<Compositor>>) -> Controller {
         let mut rse = RSEngine::new();
         rse.bootstrap().unwrap();
 
