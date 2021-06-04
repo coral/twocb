@@ -19,7 +19,7 @@ use std::env;
 use std::thread;
 
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -45,23 +45,21 @@ fn main() {
     };
 
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
-    let mut dbarc = Arc::new(db.clone());
+    let mut dbarc = Arc::new(RwLock::new(db.clone()));
 
     let api_cfg = cfg.clone();
-    let handler = thread::spawn(move || {
+    thread::spawn(move || {
         api::start(
             SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::from_str(&api_cfg.api.host).unwrap()),
                 api_cfg.api.port,
             ),
             dbarc,
-        );
+        )
+        .expect("kek");
     });
 
     let prc_cfg = cfg.clone();
-    // let processing = tokio::spawn(async move {
-    //     run(prc_cfg, db);
-    // });
 
     //Start the tokio runtime
     tokio::runtime::Builder::new_multi_thread()
@@ -71,11 +69,6 @@ fn main() {
         .block_on(async move {
             run(prc_cfg, db).await;
         });
-
-    // tokio::select! {
-    //   _ = api => 0,
-    //   _ = processing => 0
-    // };
 }
 
 pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
