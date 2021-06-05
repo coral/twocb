@@ -141,13 +141,13 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     let stp = layers::Step {
         pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
         engine_type: layers::EngineType::Rse,
-        blendmode: layers::blending::BlendModes::Add,
+        blend_mode: layers::blending::BlendModes::Add,
     };
 
     let stp2 = layers::Step {
         pattern: rse.instantiate_pattern("strobe").unwrap(),
         engine_type: layers::EngineType::Rse,
-        blendmode: layers::blending::BlendModes::Add,
+        blend_mode: layers::blending::BlendModes::Add,
     };
 
     // let stp3 = layers::Step {

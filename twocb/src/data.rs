@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 pub struct DataLayer {
     db: sled::Db,
 
-    layers: sled::Tree,
+    links: sled::Tree,
     state: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
@@ -17,11 +17,11 @@ impl DataLayer {
         match sled::open(dbpath) {
             Ok(db) => {
                 let state = db.open_tree("state").unwrap();
-                let layers = db.open_tree("layers").unwrap();
+                let links = db.open_tree("layers").unwrap();
                 return Ok(DataLayer {
                     db,
                     state,
-                    layers,
+                    links,
                     subscribed_keys: HashMap::new(),
                 });
             }
@@ -77,4 +77,8 @@ impl DataLayer {
     }
 
     //pub fn get_layers() -> Vec<u8> {}
+
+    pub fn insert_link(&mut self, key: &str, value: &[u8]) {
+        self.links.insert(key, value);
+    }
 }

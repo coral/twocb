@@ -25,6 +25,7 @@ pub struct Compositor {
 #[derive(Serialize)]
 pub struct LinkAllocation {
     id: usize,
+    name: String,
     link: Arc<Mutex<Link>>,
 }
 
@@ -60,6 +61,7 @@ impl Compositor {
 
         self.links.push(LinkAllocation {
             id: self.counter.inc(),
+            name: link.name.clone(),
             link: Arc::new(Mutex::new(link)),
         });
     }
@@ -128,7 +130,8 @@ impl Link {
             if i == 0 {
                 self.output = out
             } else {
-                self.output = blending::blend(stp.blendmode, mem::take(&mut self.output), out, 1.0);
+                self.output =
+                    blending::blend(stp.blend_mode, mem::take(&mut self.output), out, 1.0);
             }
         }
 
@@ -139,7 +142,7 @@ impl Link {
 pub struct Step {
     pub pattern: Box<dyn Pattern>,
     pub engine_type: EngineType,
-    pub blendmode: blending::BlendModes,
+    pub blend_mode: blending::BlendModes,
 }
 impl Serialize for Step {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -149,7 +152,7 @@ impl Serialize for Step {
         let mut state = serializer.serialize_struct("Step", 3)?;
         state.serialize_field("pattern", &self.pattern.name())?;
         state.serialize_field("engine_type", &self.engine_type.to_string())?;
-        state.serialize_field("blendmode", &self.blendmode.to_string())?;
+        state.serialize_field("blendmode", &self.blend_mode.to_string())?;
         state.end()
     }
 }
@@ -203,11 +206,14 @@ impl Controller {
     pub async fn bootstrap(&mut self) {
         let m = self.compositor.clone();
         let k = m.lock().await;
-        let wtf = serde_json::to_string(&k.links).unwrap();
+        for link in &k.links {
+            let wtf = serde_json::to_vec(&link.link).unwrap();
+            self.db.insert_link(&link.name, &wtf);
+        }
 
-        print!("{}", wtf);
-        let p: Vec<DeLayer> = serde_json::from_str(&wtf).unwrap();
-        dbg!(p);
+        // print!("{}", wtf);
+        // let p: Vec<DeLayer> = serde_json::from_str(&wtf).unwrap();
+        // dbg!(p);
     }
 
     // pub fn add_pattern(&mut self, pattern: &str, engine: EngineType, blendmode: ) {
