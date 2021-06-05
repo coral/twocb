@@ -1,10 +1,11 @@
+use strum_macros;
 use vecmath;
 
 mod add;
 mod screen;
 mod subtract;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, strum_macros::ToString, strum_macros::EnumString)]
 #[allow(dead_code)]
 pub enum BlendModes {
     Add,

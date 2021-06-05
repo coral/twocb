@@ -124,8 +124,9 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
         }
     }
 
-    let mut compositor = Arc::new(tokio::sync::Mutex::new(layers::Compositor::new(db.clone())));
-    layers::Controller::new(db.clone(), compositor.clone());
+    let mut compositor = Arc::new(tokio::sync::Mutex::new(layers::Compositor::new()));
+    let mut ctrl = layers::Controller::new(db.clone(), compositor.clone());
+    //ctrl.bootstrap();
     // let mut dbarc = Arc::new(RwLock::new(db));
     // let layer_controller = layers::Controller::new(dbarc.clone()).bootstrap;
 
@@ -155,6 +156,8 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
 
     compositor.lock().await.add_link(lnk).await;
+
+    ctrl.bootstrap().await;
 
     let map =
         pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");

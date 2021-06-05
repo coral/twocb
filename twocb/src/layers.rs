@@ -3,21 +3,27 @@ use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::producer;
 use atomic_counter::AtomicCounter;
 use log::error;
+use serde::{
+    ser::{SerializeStruct, Serializer},
+    Deserialize, Serialize,
+};
+use serde_json;
 use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
+use self::blending::BlendModes;
+
 pub mod blending;
 pub struct Compositor {
-    links: Vec<LinkAllocation>,
+    pub links: Vec<LinkAllocation>,
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
-
-    db: data::DataLayer,
 }
 
-struct LinkAllocation {
+#[derive(Serialize)]
+pub struct LinkAllocation {
     id: usize,
     link: Arc<Mutex<Link>>,
 }
@@ -29,30 +35,28 @@ struct LinkResult {
 }
 
 impl Compositor {
-    pub fn new(db: data::DataLayer) -> Compositor {
+    pub fn new() -> Compositor {
         Compositor {
             links: vec![],
             buffer: vec![],
             counter: atomic_counter::ConsistentCounter::new(0),
-
-            db,
         }
     }
 
     pub async fn add_link(&mut self, mut link: Link) {
-        for s in link.steps.iter_mut() {
-            let key = &format!("{}_{}", &link.name, s.pattern.name());
-            match self.db.subscribe(key).await {
-                Ok(v) => match self.db.get_state(key) {
-                    Some(d) => s.pattern.set_state(d),
-                    None => {
-                        let newstate = &s.pattern.get_state();
-                        self.db.write_state(key, &newstate);
-                    }
-                },
-                Err(err) => error!("Could not subscribe to key updates: {}", err),
-            }
-        }
+        // for s in link.steps.iter_mut() {
+        //     let key = &format!("{}_{}", &link.name, s.pattern.name());
+        //     match self.db.subscribe(key).await {
+        //         Ok(v) => match self.db.get_state(key) {
+        //             Some(d) => s.pattern.set_state(d),
+        //             None => {
+        //                 let newstate = &s.pattern.get_state();
+        //                 self.db.write_state(key, &newstate);
+        //             }
+        //         },
+        //         Err(err) => error!("Could not subscribe to key updates: {}", err),
+        //     }
+        // }
 
         self.links.push(LinkAllocation {
             id: self.counter.inc(),
@@ -98,10 +102,14 @@ impl Compositor {
         return self.buffer.clone();
     }
 }
+
 unsafe impl Send for Link {}
+#[derive(Serialize)]
 pub struct Link {
     name: String,
     steps: Vec<Step>,
+
+    #[serde(skip_serializing)]
     output: Vec<vecmath::Vector4<f64>>,
 }
 
@@ -132,13 +140,22 @@ pub struct Step {
     pub pattern: Box<dyn Pattern>,
     pub blendmode: blending::BlendModes,
 }
+impl Serialize for Step {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Step", 2)?;
+        state.serialize_field("name", &self.pattern.name())?;
+        state.serialize_field("blendmode", &self.blendmode.to_string())?;
+        state.end()
+    }
+}
 
-// pub trait Step {
-//     fn init(&self);
-//     fn query_parameters(&self) -> Vec<String>;
-//     fn query_requirements(&self);
-//     fn render(&self);
-// }
+enum EngineType {
+    rse,
+    dse,
+}
 
 pub struct Controller {
     rse: RSEngine,
@@ -160,5 +177,14 @@ impl Controller {
         };
     }
 
-    pub fn bootstrap(&mut self) {}
+    pub async fn bootstrap(&mut self) {
+        let m = self.compositor.clone();
+        let k = m.lock().await;
+        let wtf = serde_json::to_string(&k.links);
+        dbg!(wtf);
+    }
+
+    // pub fn add_pattern(&mut self, pattern: &str, engine: EngineType, blendmode: ) {
+
+    // }
 }
