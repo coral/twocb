@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 
 #[derive(Clone)]
 pub struct DataLayer {
-    db: sled::Db,
+    pub db: sled::Db,
 
     pub links: sled::Tree,
     state: sled::Tree,
