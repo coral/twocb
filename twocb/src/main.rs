@@ -1,6 +1,7 @@
 mod api;
 mod audio;
 mod config;
+mod controller;
 mod data;
 mod engines;
 mod layers;
@@ -124,8 +125,10 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
         }
     }
 
-    let mut compositor = Arc::new(tokio::sync::Mutex::new(layers::Compositor::new()));
-    let mut ctrl = layers::Controller::new(db.clone(), compositor.clone());
+    let mut compositor = Arc::new(tokio::sync::Mutex::new(
+        layers::compositor::Compositor::new(),
+    ));
+    let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
     ctrl.bootstrap().await;
 
     let map =

@@ -1,26 +1,19 @@
 use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::producer;
-use atomic_counter::AtomicCounter;
 use log::error;
 use serde::{
     ser::{SerializeStruct, Serializer},
     Deserialize, Serialize,
 };
 use serde_json;
+
 use std::mem;
 use std::sync::{Arc, Mutex};
 use strum_macros;
 
-use self::blending::BlendModes;
-
 pub mod blending;
-pub struct Compositor {
-    pub links: Vec<LinkAllocation>,
-    buffer: Vec<vecmath::Vector4<f64>>,
-
-    counter: atomic_counter::ConsistentCounter,
-}
+pub mod compositor;
 
 #[derive(Serialize)]
 pub struct LinkAllocation {
@@ -33,76 +26,6 @@ pub struct LinkAllocation {
 struct LinkResult {
     id: usize,
     output: Vec<vecmath::Vector4<f64>>,
-}
-
-impl Compositor {
-    pub fn new() -> Compositor {
-        Compositor {
-            links: vec![],
-            buffer: vec![],
-            counter: atomic_counter::ConsistentCounter::new(0),
-        }
-    }
-
-    pub async fn add_link(&mut self, link: Link) {
-        // for s in link.steps.iter_mut() {
-        //     let key = &format!("{}_{}", &link.name, s.pattern.name());
-        //     match self.db.subscribe(key).await {
-        //         Ok(v) => match self.db.get_state(key) {
-        //             Some(d) => s.pattern.set_state(d),
-        //             None => {
-        //                 let newstate = &s.pattern.get_state();
-        //                 self.db.write_state(key, &newstate);
-        //             }
-        //         },
-        //         Err(err) => error!("Could not subscribe to key updates: {}", err),
-        //     }
-        // }
-
-        self.links.push(LinkAllocation {
-            id: self.counter.inc(),
-            name: link.name.clone(),
-            link: Arc::new(Mutex::new(link)),
-        });
-    }
-
-    pub fn remove_link(&mut self, name: String) -> bool {
-        return self
-            .links
-            .iter()
-            .position(|n| n.link.lock().unwrap().name == name)
-            .map(|e| self.links.remove(e))
-            .is_some();
-    }
-
-    pub async fn render(&mut self, frame: producer::Frame) -> Vec<vecmath::Vector4<f64>> {
-        let f = Arc::new(frame);
-        self.buffer.clear();
-        let mut handles = vec![];
-        for la in &self.links {
-            let cid = la.id;
-            let link = la.link.clone();
-            let frame = f.clone();
-            handles.push(tokio::spawn(async move {
-                LinkResult {
-                    id: cid,
-                    output: link.lock().unwrap().render(frame),
-                }
-            }));
-        }
-
-        let ok = futures::future::join_all(handles).await;
-        for r in ok {
-            self.buffer = blending::blend(
-                blending::BlendModes::Add,
-                mem::take(&mut self.buffer),
-                r.unwrap().output,
-                1.0,
-            );
-        }
-
-        return self.buffer.clone();
-    }
 }
 
 unsafe impl Send for Link {}
@@ -166,79 +89,13 @@ pub enum EngineType {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct DeLayer {
-    id: i64,
-    link: DeLink,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct DeLink {
-    name: String,
-    steps: Vec<DeStep>,
+pub struct DeLink {
+    pub name: String,
+    pub steps: Vec<DeStep>,
 }
 #[derive(Serialize, Deserialize, Debug)]
-struct DeStep {
+pub struct DeStep {
     pub pattern: String,
     pub engine_type: EngineType,
     pub blendmode: blending::BlendModes,
-}
-
-pub struct Controller {
-    rse: RSEngine,
-
-    compositor: Arc<tokio::sync::Mutex<Compositor>>,
-    db: data::DataLayer,
-}
-
-impl Controller {
-    pub fn new(db: data::DataLayer, compositor: Arc<tokio::sync::Mutex<Compositor>>) -> Controller {
-        let mut rse = RSEngine::new();
-        rse.bootstrap().unwrap();
-
-        return Controller {
-            rse,
-
-            compositor,
-            db,
-        };
-    }
-
-    pub async fn bootstrap(&mut self) {
-        for result in self.db.links.iter() {
-            match result {
-                Ok((_, v)) => {
-                    let link: DeLink = serde_json::from_slice(&v).unwrap();
-                    self.load_link(link).await;
-                }
-                _ => {}
-            }
-        }
-    }
-
-    async fn load_link(&mut self, link: DeLink) {
-        let mut steps = Vec::new();
-        for step in link.steps {
-            steps.push(Step {
-                pattern: self.instantiate(&step.pattern, step.engine_type).unwrap(),
-                blend_mode: step.blendmode,
-                engine_type: step.engine_type,
-            });
-        }
-        let newlink = Link::create(link.name, steps);
-        self.compositor.lock().await.add_link(newlink).await;
-    }
-
-    fn instantiate(
-        &mut self,
-        name: &str,
-        engine_type: EngineType,
-    ) -> Result<Box<Pattern>, &'static str> {
-        match engine_type {
-            Rse => match self.rse.instantiate_pattern(name) {
-                Some(v) => return Ok(v),
-                None => return Err("Could not find RSE pattern"),
-            },
-            _ => Err("Could not find pattern"),
-        }
-    }
 }
