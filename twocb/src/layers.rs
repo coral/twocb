@@ -8,9 +8,9 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_json;
-use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
+use strum_macros;
 
 use self::blending::BlendModes;
 
@@ -138,6 +138,7 @@ impl Link {
 
 pub struct Step {
     pub pattern: Box<dyn Pattern>,
+    pub engine_type: EngineType,
     pub blendmode: blending::BlendModes,
 }
 impl Serialize for Step {
@@ -145,16 +146,38 @@ impl Serialize for Step {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Step", 2)?;
-        state.serialize_field("name", &self.pattern.name())?;
+        let mut state = serializer.serialize_struct("Step", 3)?;
+        state.serialize_field("pattern", &self.pattern.name())?;
+        state.serialize_field("engine_type", &self.engine_type.to_string())?;
         state.serialize_field("blendmode", &self.blendmode.to_string())?;
         state.end()
     }
 }
 
-enum EngineType {
-    rse,
-    dse,
+#[derive(
+    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::ToString, strum_macros::EnumString,
+)]
+pub enum EngineType {
+    Rse,
+    Dse,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeLayer {
+    id: i64,
+    link: DeLink,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct DeLink {
+    name: String,
+    steps: Vec<DeStep>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct DeStep {
+    pub pattern: String,
+    pub engine_type: EngineType,
+    pub blendmode: blending::BlendModes,
 }
 
 pub struct Controller {
@@ -180,8 +203,11 @@ impl Controller {
     pub async fn bootstrap(&mut self) {
         let m = self.compositor.clone();
         let k = m.lock().await;
-        let wtf = serde_json::to_string(&k.links);
-        dbg!(wtf);
+        let wtf = serde_json::to_string(&k.links).unwrap();
+
+        print!("{}", wtf);
+        let p: Vec<DeLayer> = serde_json::from_str(&wtf).unwrap();
+        dbg!(p);
     }
 
     // pub fn add_pattern(&mut self, pattern: &str, engine: EngineType, blendmode: ) {

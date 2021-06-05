@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use strum_macros;
 use vecmath;
 
@@ -5,7 +6,9 @@ mod add;
 mod screen;
 mod subtract;
 
-#[derive(Clone, Copy, strum_macros::ToString, strum_macros::EnumString)]
+#[derive(
+    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::ToString, strum_macros::EnumString,
+)]
 #[allow(dead_code)]
 pub enum BlendModes {
     Add,
