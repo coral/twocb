@@ -6,6 +6,7 @@ use log::error;
 use std::sync::{Arc, Mutex};
 pub struct Controller {
     rse: RSEngine,
+    dse: DynamicEngine,
 
     compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
     data: data::DataLayer,
@@ -19,8 +20,12 @@ impl Controller {
         let mut rse = RSEngine::new();
         rse.bootstrap().unwrap();
 
+        let mut dse = DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
+        dse.bootstrap().unwrap();
+
         return Controller {
             rse,
+            dse,
 
             compositor,
             data,
@@ -87,6 +92,10 @@ impl Controller {
             Rse => match self.rse.instantiate_pattern(name) {
                 Some(v) => return Ok(v),
                 None => return Err("Could not find RSE pattern"),
+            },
+            Dse => match self.dse.instantiate_pattern(name) {
+                Some(v) => return Ok(v),
+                None => return Err("Could not find DSE pattern"),
             },
             _ => Err("Could not find pattern"),
         }

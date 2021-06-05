@@ -13,14 +13,13 @@ mod producer;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use clap::{AppSettings, Clap};
-use engines::Engine;
 use log::error;
 use pretty_env_logger;
 use std::env;
 use std::thread;
 
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -46,7 +45,6 @@ fn main() {
     };
 
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
-    //let mut dbarc = Arc::new(RwLock::new(db.clone()));
 
     let api_cfg = cfg.clone();
     let api_db = db.clone();
