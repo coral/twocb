@@ -44,7 +44,7 @@ impl Compositor {
         }
     }
 
-    pub async fn add_link(&mut self, mut link: Link) {
+    pub async fn add_link(&mut self, link: Link) {
         // for s in link.steps.iter_mut() {
         //     let key = &format!("{}_{}", &link.name, s.pattern.name());
         //     match self.db.subscribe(key).await {
@@ -204,19 +204,41 @@ impl Controller {
     }
 
     pub async fn bootstrap(&mut self) {
-        let m = self.compositor.clone();
-        let k = m.lock().await;
-        for link in &k.links {
-            let wtf = serde_json::to_vec(&link.link).unwrap();
-            self.db.insert_link(&link.name, &wtf);
+        for result in self.db.links.iter() {
+            match result {
+                Ok((_, v)) => {
+                    let link: DeLink = serde_json::from_slice(&v).unwrap();
+                    self.load_link(link).await;
+                }
+                _ => {}
+            }
         }
-
-        // print!("{}", wtf);
-        // let p: Vec<DeLayer> = serde_json::from_str(&wtf).unwrap();
-        // dbg!(p);
     }
 
-    // pub fn add_pattern(&mut self, pattern: &str, engine: EngineType, blendmode: ) {
+    async fn load_link(&mut self, link: DeLink) {
+        let mut steps = Vec::new();
+        for step in link.steps {
+            steps.push(Step {
+                pattern: self.instantiate(&step.pattern, step.engine_type).unwrap(),
+                blend_mode: step.blendmode,
+                engine_type: step.engine_type,
+            });
+        }
+        let newlink = Link::create(link.name, steps);
+        self.compositor.lock().await.add_link(newlink).await;
+    }
 
-    // }
+    fn instantiate(
+        &mut self,
+        name: &str,
+        engine_type: EngineType,
+    ) -> Result<Box<Pattern>, &'static str> {
+        match engine_type {
+            Rse => match self.rse.instantiate_pattern(name) {
+                Some(v) => return Ok(v),
+                None => return Err("Could not find RSE pattern"),
+            },
+            _ => Err("Could not find pattern"),
+        }
+    }
 }

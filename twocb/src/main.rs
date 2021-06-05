@@ -126,39 +126,6 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
 
     let mut compositor = Arc::new(tokio::sync::Mutex::new(layers::Compositor::new()));
     let mut ctrl = layers::Controller::new(db.clone(), compositor.clone());
-    //ctrl.bootstrap();
-    // let mut dbarc = Arc::new(RwLock::new(db));
-    // let layer_controller = layers::Controller::new(dbarc.clone()).bootstrap;
-
-    let mut rse = engines::RSEngine::new();
-    rse.bootstrap().unwrap();
-
-    // let mut dse = engines::DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
-    // dse.bootstrap().unwrap();
-    // let patterns = dse.list();
-    // b!(patterns);
-
-    let stp = layers::Step {
-        pattern: rse.instantiate_pattern("foldeddemo").unwrap(),
-        engine_type: layers::EngineType::Rse,
-        blend_mode: layers::blending::BlendModes::Add,
-    };
-
-    let stp2 = layers::Step {
-        pattern: rse.instantiate_pattern("strobe").unwrap(),
-        engine_type: layers::EngineType::Rse,
-        blend_mode: layers::blending::BlendModes::Add,
-    };
-
-    // let stp3 = layers::Step {
-    //     pattern: dse.instantiate_pattern("first.js").unwrap(),
-    //     blendmode: layers::blending::BlendModes::Add,
-    // };
-
-    let lnk = layers::Link::create(String::from("firstExperince"), vec![stp, stp2]);
-
-    compositor.lock().await.add_link(lnk).await;
-
     ctrl.bootstrap().await;
 
     let map =

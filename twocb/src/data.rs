@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 pub struct DataLayer {
     db: sled::Db,
 
-    links: sled::Tree,
+    pub links: sled::Tree,
     state: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
