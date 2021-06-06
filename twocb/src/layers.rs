@@ -16,7 +16,7 @@ pub mod compositor;
 pub struct LinkAllocation {
     id: usize,
     name: String,
-    link: Arc<Mutex<Link>>,
+    pub link: Arc<Mutex<Link>>,
 }
 
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ unsafe impl Send for Link {}
 #[derive(Serialize)]
 pub struct Link {
     name: String,
-    steps: Vec<Step>,
+    pub steps: Vec<Step>,
 
     #[serde(skip_serializing)]
     output: Vec<vecmath::Vector4<f64>>,

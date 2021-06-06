@@ -48,7 +48,7 @@ impl pattern::Pattern for FoldedDemo {
         return serde_json::to_vec(&self.s).unwrap();
     }
 
-    fn set_state(&mut self, data: Vec<u8>) {
+    fn set_state(&mut self, data: &[u8]) {
         self.s = serde_json::from_slice(&data).unwrap();
     }
 }

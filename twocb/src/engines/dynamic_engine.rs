@@ -276,5 +276,5 @@ impl engines::pattern::Pattern for DynamicPattern {
         return Vec::new();
     }
 
-    fn set_state(&mut self, data: Vec<u8>) {}
+    fn set_state(&mut self, data: &[u8]) {}
 }

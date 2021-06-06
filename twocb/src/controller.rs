@@ -4,8 +4,8 @@ use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
 
 use log::error;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
 pub struct Controller {
     rse: RSEngine,
     dse: DynamicEngine,
@@ -73,6 +73,28 @@ impl Controller {
         self.load_link(knuck).await;
     }
 
+    pub fn watch_data_changes(
+        db: data::DataLayer,
+        changes: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>>,
+        compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
+    ) {
+        tokio::spawn(async move {
+            let subscriber = db.state.watch_prefix(vec![]);
+            for event in subscriber {
+                match event {
+                    sled::Event::Insert { key, value } => {
+                        let k = std::str::from_utf8(&key).unwrap();
+                        let l = &mut compositor.lock().await;
+                        l.write_pattern_state(k, &value)
+                    }
+                    _ => {
+                        dbg!("SOMETHING ELSE");
+                    }
+                }
+            }
+        });
+    }
+
     async fn load_link(&mut self, link: DeLink) {
         let mut steps = Vec::new();
         for step in link.steps {
@@ -87,12 +109,12 @@ impl Controller {
 
             self.updates
                 .lock()
-                .unwrap()
+                .await
                 .insert(link.name.clone() + "_" + &step.pattern, tx);
 
             let key = &format!("{}_{}", &link.name, &step.pattern);
             match self.data.get_state(key) {
-                Some(d) => newstep.pattern.set_state(d),
+                Some(d) => newstep.pattern.set_state(&d),
                 None => {
                     let newstate = newstep.pattern.get_state();
                     self.data.write_state(key, &newstate);

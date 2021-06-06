@@ -130,28 +130,11 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
     ctrl.bootstrap().await;
 
-    let update_db = db.clone();
-    let update_map = ctrl.updates.clone();
-    tokio::spawn(async move {
-        let subscriber = update_db.state.watch_prefix(vec![]);
-        for event in subscriber.take(1) {
-            match event {
-                sled::Event::Insert { key, value } => {
-                    let k = std::str::from_utf8(&key).unwrap();
-                    let u = update_map.lock().unwrap();
-                    match u.get(k) {
-                        Some(v) => {
-                            v.send(value.to_vec()).await;
-                        }
-                        None => {}
-                    }
-                }
-                _ => {
-                    dbg!("SOMETHING ELSE");
-                }
-            }
-        }
-    });
+    controller::Controller::watch_data_changes(
+        db.clone(),
+        ctrl.updates.clone(),
+        compositor.clone(),
+    );
 
     let map =
         pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");

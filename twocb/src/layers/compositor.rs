@@ -4,11 +4,13 @@ use crate::producer;
 
 use atomic_counter::AtomicCounter;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
 pub struct Compositor {
     pub links: Vec<LinkAllocation>,
+    lookup: HashMap<String, Arc<Mutex<Link>>>,
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
@@ -18,6 +20,7 @@ impl Compositor {
     pub fn new() -> Compositor {
         Compositor {
             links: vec![],
+            lookup: HashMap::new(),
 
             buffer: vec![],
             counter: atomic_counter::ConsistentCounter::new(0),
@@ -39,11 +42,15 @@ impl Compositor {
         //     }
         // }
 
+        let name = link.name.clone();
+        let arclink = Arc::new(Mutex::new(link));
         let la = LinkAllocation {
             id: self.counter.inc(),
-            name: link.name.clone(),
-            link: Arc::new(Mutex::new(link)),
+            name,
+            link: arclink.clone(),
         };
+
+        //self.lookup.insert(name.clone() + "_" + , v)
 
         self.links.push(la);
     }
@@ -57,7 +64,16 @@ impl Compositor {
             .is_some();
     }
 
-    pub fn get_pattern(&mut self, key: &str) {}
+    pub fn write_pattern_state(&mut self, key: &str, data: &[u8]) {
+        for l in &mut self.links {
+            for step in &mut l.link.lock().unwrap().steps {
+                let nk = l.name.clone() + "_" + &step.pattern.name();
+                if &nk == key {
+                    step.pattern.set_state(data);
+                }
+            }
+        }
+    }
 
     pub async fn render(&mut self, frame: producer::Frame) -> Vec<vecmath::Vector4<f64>> {
         let f = Arc::new(frame);
