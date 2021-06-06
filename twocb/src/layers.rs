@@ -63,6 +63,8 @@ pub struct Step {
     pub pattern: Box<dyn Pattern>,
     pub engine_type: EngineType,
     pub blend_mode: blending::BlendModes,
+
+    pub drx: tokio::sync::mpsc::Receiver<Vec<u8>>,
 }
 impl Serialize for Step {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

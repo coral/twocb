@@ -3,10 +3,14 @@ use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
 
 use log::error;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 pub struct Controller {
     rse: RSEngine,
     dse: DynamicEngine,
+
+    pub updates: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>>,
 
     compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
     data: data::DataLayer,
@@ -27,54 +31,72 @@ impl Controller {
             rse,
             dse,
 
+            updates: Arc::new(Mutex::new(HashMap::new())),
+
             compositor,
             data,
         };
     }
 
     pub async fn bootstrap(&mut self) {
-        let mut subscriber = self.data.clone().db.watch_prefix(vec![]);
-        tokio::spawn(async move {
-            for event in subscriber.take(1) {
-                match event {
-                    sled::Event::Insert { key, value } => {
-                        dbg!(key, value);
-                    }
-                    _ => {}
-                }
-            }
-        });
+        let mut subscriber = self.data.clone().state.watch_prefix(vec![]);
 
         for result in self.data.links.iter() {
             match result {
-                Ok((_, v)) => {
+                Ok((k, v)) => {
                     let link: DeLink = serde_json::from_slice(&v).unwrap();
+                    println!("{:?}", link);
                     self.load_link(link).await;
                 }
                 _ => {}
             }
         }
+
+        // let m = Step {
+        //     pattern: self.instantiate("foldeddemo", EngineType::Rse).unwrap(),
+        //     blend_mode: crate::layers::blending::BlendModes::Add,
+        //     engine_type: EngineType::Rse,
+        // };
+
+        // let k = Link::create("wooof".to_string(), vec![m]);
+        // self.compositor.lock().await.add_link(k).await;
+
+        let knuck = DeLink {
+            name: "woo".to_string(),
+            steps: vec![DeStep {
+                pattern: "foldeddemo".to_string(),
+                blendmode: crate::layers::blending::BlendModes::Add,
+                engine_type: EngineType::Rse,
+            }],
+        };
+
+        self.load_link(knuck).await;
     }
 
     async fn load_link(&mut self, link: DeLink) {
         let mut steps = Vec::new();
         for step in link.steps {
+            let (mut tx, mut rx) = mpsc::channel(5);
             let mut newstep = Step {
                 pattern: self.instantiate(&step.pattern, step.engine_type).unwrap(),
                 blend_mode: step.blendmode,
                 engine_type: step.engine_type,
+
+                drx: rx,
             };
 
+            self.updates
+                .lock()
+                .unwrap()
+                .insert(link.name.clone() + "_" + &step.pattern, tx);
+
             let key = &format!("{}_{}", &link.name, &step.pattern);
-            match self.data.subscribe(key).await {
-                Ok(v) => match self.data.get_state(key) {
-                    Some(d) => newstep.pattern.set_state(d),
-                    None => {
-                        let newstate = newstep.pattern.get_state();
-                        self.data.write_state(key, &newstate);
-                    }
-                },
-                Err(err) => error!("Could not subscribe to key updates: {}", err),
+            match self.data.get_state(key) {
+                Some(d) => newstep.pattern.set_state(d),
+                None => {
+                    let newstate = newstep.pattern.get_state();
+                    self.data.write_state(key, &newstate);
+                }
             }
 
             steps.push(newstep);

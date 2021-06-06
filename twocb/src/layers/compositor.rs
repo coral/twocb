@@ -3,6 +3,7 @@ use crate::layers::{Link, LinkAllocation, LinkResult};
 use crate::producer;
 
 use atomic_counter::AtomicCounter;
+use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
@@ -17,6 +18,7 @@ impl Compositor {
     pub fn new() -> Compositor {
         Compositor {
             links: vec![],
+
             buffer: vec![],
             counter: atomic_counter::ConsistentCounter::new(0),
         }
@@ -37,11 +39,13 @@ impl Compositor {
         //     }
         // }
 
-        self.links.push(LinkAllocation {
+        let la = LinkAllocation {
             id: self.counter.inc(),
             name: link.name.clone(),
             link: Arc::new(Mutex::new(link)),
-        });
+        };
+
+        self.links.push(la);
     }
 
     pub fn remove_link(&mut self, name: String) -> bool {
@@ -52,6 +56,8 @@ impl Compositor {
             .map(|e| self.links.remove(e))
             .is_some();
     }
+
+    pub fn get_pattern(&mut self, key: &str) {}
 
     pub async fn render(&mut self, frame: producer::Frame) -> Vec<vecmath::Vector4<f64>> {
         let f = Arc::new(frame);

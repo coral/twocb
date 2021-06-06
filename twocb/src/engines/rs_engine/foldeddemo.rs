@@ -3,6 +3,7 @@ use crate::pixels::Pixel;
 use crate::producer;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::sync::mpsc;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
     factor: f64,

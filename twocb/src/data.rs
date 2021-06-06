@@ -8,7 +8,7 @@ pub struct DataLayer {
     pub db: sled::Db,
 
     pub links: sled::Tree,
-    state: sled::Tree,
+    pub state: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
 

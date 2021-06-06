@@ -1,5 +1,6 @@
 use crate::producer;
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use vecmath;
 
 pub trait Pattern {
