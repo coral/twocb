@@ -9,6 +9,7 @@ mod output;
 mod patterns;
 mod pixels;
 mod producer;
+use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
