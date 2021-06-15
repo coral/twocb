@@ -2,8 +2,6 @@ use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
 
-use log::error;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 pub struct Controller {

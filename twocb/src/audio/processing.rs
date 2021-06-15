@@ -1,5 +1,6 @@
 use crate::audio;
 use aubio::{Onset, Tempo, FFT};
+use log::error;
 use std::time::Instant;
 use tokio::sync::broadcast;
 
@@ -90,22 +91,45 @@ impl Processing {
         loop {
             let audiodata = self.dr.recv().unwrap();
 
-            ///TEMPO
-            let tempodata = self.tempo.do_result(&audiodata).unwrap();
-            if tempodata > 0.0 && self.tempo.get_confidence() > 0.03 {
-                let t = TempoResult {
-                    bpm: self.tempo.get_bpm(),
-                    confidence: self.tempo.get_confidence(),
-                    period: self.tempo.get_period_s(),
-                    time: Instant::now(),
-                };
-                self.tempo_tx.send(t).unwrap();
+            //Tempo
+            match self.tempo.do_result(&audiodata) {
+                Ok(tempodata) => {
+                    if tempodata > 0.0 && self.tempo.get_confidence() > 0.03 {
+                        let t = TempoResult {
+                            bpm: self.tempo.get_bpm(),
+                            confidence: self.tempo.get_confidence(),
+                            period: self.tempo.get_period_s(),
+                            time: Instant::now(),
+                        };
+                        match self.tempo_tx.send(t) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("Tempo channel send fail: {}", e);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Tempo fail: {}", e);
+                }
             }
 
             //ONSET
-            let onsetdata = self.onset.do_result(&audiodata).unwrap();
-            if onsetdata > 0.0 {
-                self.onset_tx.send(onsetdata).unwrap();
+
+            match self.onset.do_result(&audiodata) {
+                Ok(onsetdata) => {
+                    if onsetdata > 0.0 {
+                        match self.onset_tx.send(onsetdata) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                error!("Onset channel send fail: {}", e);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Onset result error: {}", e);
+                }
             }
 
             //FFT

@@ -69,7 +69,6 @@ pub async fn bootstrap() {
     controller::Controller::watch_state_changes(db.clone(), compositor.clone());
 
     let ctrl = Arc::new(tokio::sync::Mutex::new(ctrl));
-    // let denis = ctrl.clone();
     //controller::Controller::watch_layer_changes(db.clone(), denis);
 
     let api_cfg = cfg.clone();
@@ -162,9 +161,14 @@ pub async fn run(
     });
 
     loop {
-        let frame_data = framechan.recv().await.unwrap();
-
-        let rst = compositor.lock().await.render(frame_data).await;
-        output.write(&rst);
+        match framechan.recv().await {
+            Ok(frame) => {
+                let rst = compositor.lock().await.render(frame).await;
+                output.write(&rst);
+            }
+            Err(e) => {
+                error!("{}", e)
+            }
+        };
     }
 }
