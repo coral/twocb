@@ -47,27 +47,6 @@ impl Controller {
                 _ => {}
             }
         }
-
-        // let m = Step {
-        //     pattern: self.instantiate("foldeddemo", EngineType::Rse).unwrap(),
-        //     blend_mode: crate::layers::blending::BlendModes::Add,
-        //     engine_type: EngineType::Rse,
-        // };
-
-        // let k = Link::create("wooof".to_string(), vec![m]);
-        // self.compositor.lock().await.add_link(k).await;
-
-        // let knuck = DeLink {
-        //     name: "woo".to_string(),
-        //     steps: vec![DeStep {
-        //         pattern: "foldeddemo".to_string(),
-        //         blendmode: crate::layers::blending::BlendModes::Add,
-        //         engine_type: EngineType::Rse,
-        //     }],
-        // };
-        // let d = serde_json::to_vec(&knuck).unwrap();
-        // self.data.write_layer("woo", &d);
-        // self.load_link(knuck).await;
     }
 
     pub fn watch_state_changes(
