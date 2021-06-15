@@ -92,6 +92,7 @@ impl Controller {
     }
 
     async fn load_link(&mut self, link: DeLink) {
+        let store = serde_json::to_vec(&link).unwrap();
         let mut steps = Vec::new();
         for step in link.steps {
             let (mut tx, mut rx) = mpsc::channel(5);
@@ -114,16 +115,20 @@ impl Controller {
 
             steps.push(newstep);
         }
+
+        let key = link.name.clone();
         let newlink = Link::create(link.name, steps);
+        self.compositor.lock().await.remove_link(&key);
         self.compositor.lock().await.add_link(newlink);
+        self.data.write_layer(&key, &store);
     }
 
-    async fn remove_link(&mut self, key: &str) {
-        self.compositor.lock().await.remove_link(key);
+    pub async fn remove_link(&mut self, key: &str) -> bool {
+        self.data.links.remove(&key);
+        self.compositor.lock().await.remove_link(key)
     }
 
     pub async fn add_link(&mut self, new_link: DeLink) {
-        //let link: DeLink = serde_json::from_str(serialized_link).unwrap();
         self.load_link(new_link).await;
     }
     pub async fn get_links_string(&self) -> String {
