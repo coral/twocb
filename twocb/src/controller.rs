@@ -120,11 +120,11 @@ impl Controller {
         engine_type: EngineType,
     ) -> Result<Box<dyn Pattern>, &'static str> {
         match engine_type {
-            Rse => match self.rse.instantiate_pattern(name) {
+            EngineType::Rse => match self.rse.instantiate_pattern(name) {
                 Some(v) => return Ok(v),
                 None => return Err("Could not find RSE pattern"),
             },
-            Dse => match self.dse.instantiate_pattern(name) {
+            EngineType::Dse => match self.dse.instantiate_pattern(name) {
                 Some(v) => return Ok(v),
                 None => return Err("Could not find DSE pattern"),
             },
