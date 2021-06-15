@@ -10,11 +10,11 @@ pub struct Controller {
     rse: RSEngine,
     dse: DynamicEngine,
 
-    pub updates: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>>,
-
     compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
     data: data::DataLayer,
 }
+unsafe impl Send for Controller {}
+unsafe impl Sync for Controller {}
 
 impl Controller {
     pub fn new(
@@ -31,16 +31,12 @@ impl Controller {
             rse,
             dse,
 
-            updates: Arc::new(Mutex::new(HashMap::new())),
-
             compositor,
             data,
         };
     }
 
     pub async fn bootstrap(&mut self) {
-        let mut subscriber = self.data.clone().state.watch_prefix(vec![]);
-
         for result in self.data.links.iter() {
             match result {
                 Ok((k, v)) => {
@@ -61,21 +57,21 @@ impl Controller {
         // let k = Link::create("wooof".to_string(), vec![m]);
         // self.compositor.lock().await.add_link(k).await;
 
-        let knuck = DeLink {
-            name: "woo".to_string(),
-            steps: vec![DeStep {
-                pattern: "foldeddemo".to_string(),
-                blendmode: crate::layers::blending::BlendModes::Add,
-                engine_type: EngineType::Rse,
-            }],
-        };
-
-        self.load_link(knuck).await;
+        // let knuck = DeLink {
+        //     name: "woo".to_string(),
+        //     steps: vec![DeStep {
+        //         pattern: "foldeddemo".to_string(),
+        //         blendmode: crate::layers::blending::BlendModes::Add,
+        //         engine_type: EngineType::Rse,
+        //     }],
+        // };
+        // let d = serde_json::to_vec(&knuck).unwrap();
+        // self.data.write_layer("woo", &d);
+        // self.load_link(knuck).await;
     }
 
     pub fn watch_state_changes(
         db: data::DataLayer,
-        changes: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>>,
         compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
     ) {
         tokio::spawn(async move {
@@ -95,25 +91,6 @@ impl Controller {
         });
     }
 
-    pub fn watch_layer_changes(&mut self, 
-    ) {
-        let lc_db = self.data.clone();
-        tokio::spawn(async move {
-            let subscriber = lc_db.links.watch_prefix(vec![]);
-            for event in subscriber {
-                match event {
-                    sled::Event::Insert { key, value } => {
-                        let k = std::str::from_utf8(&key).unwrap();
-                        //l.write_pattern_state(k, &value)
-                    }
-                    sled::Event::Remove  { key }=> {
-                       self.remove_link(std::str::from_utf8(&key).unwrap()); 
-                    }
-                }
-             }
-        });
-    }
-
     async fn load_link(&mut self, link: DeLink) {
         let mut steps = Vec::new();
         for step in link.steps {
@@ -125,11 +102,6 @@ impl Controller {
 
                 drx: rx,
             };
-
-            self.updates
-                .lock()
-                .await
-                .insert(link.name.clone() + "_" + &step.pattern, tx);
 
             let key = &format!("{}_{}", &link.name, &step.pattern);
             match self.data.get_state(key) {
@@ -143,11 +115,19 @@ impl Controller {
             steps.push(newstep);
         }
         let newlink = Link::create(link.name, steps);
-        self.compositor.lock().await.add_link(newlink).await;
+        self.compositor.lock().await.add_link(newlink);
     }
 
     async fn remove_link(&mut self, key: &str) {
         self.compositor.lock().await.remove_link(key);
+    }
+
+    pub async fn add_link(&mut self, new_link: DeLink) {
+        //let link: DeLink = serde_json::from_str(serialized_link).unwrap();
+        self.load_link(new_link).await;
+    }
+    pub async fn get_links_string(&self) -> String {
+        serde_json::to_string(&self.compositor.lock().await.links).unwrap()
     }
 
     fn instantiate(

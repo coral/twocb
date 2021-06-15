@@ -22,6 +22,7 @@ use std::thread;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::oneshot;
+use tokio::sync::Mutex;
 use tokio::task;
 
 #[derive(Clap)]
@@ -33,6 +34,18 @@ struct Opts {
 }
 
 fn main() {
+    //Start the tokio runtime
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async move {
+            //tokio::spawn(async move { order(order_db).await });
+            bootstrap().await;
+        });
+}
+
+pub async fn bootstrap() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
@@ -47,8 +60,21 @@ fn main() {
 
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
 
+    let mut compositor = Arc::new(tokio::sync::Mutex::new(
+        layers::compositor::Compositor::new(),
+    ));
+    let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
+    ctrl.bootstrap().await;
+
+    controller::Controller::watch_state_changes(db.clone(), compositor.clone());
+
+    let ctrl = Arc::new(tokio::sync::Mutex::new(ctrl));
+    // let denis = ctrl.clone();
+    //controller::Controller::watch_layer_changes(db.clone(), denis);
+
     let api_cfg = cfg.clone();
     let api_db = db.clone();
+    let api_ctrl = ctrl.clone();
     thread::spawn(move || {
         api::start(
             SocketAddr::new(
@@ -56,24 +82,23 @@ fn main() {
                 api_cfg.api.port,
             ),
             api_db,
+            api_ctrl,
         )
         .expect("kek");
     });
 
     let prc_cfg = cfg.clone();
     let run_db = db.clone();
-    //Start the tokio runtime
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async move {
-            //tokio::spawn(async move { order(order_db).await });
-            run(prc_cfg, db).await;
-        });
+    let cmps = compositor.clone();
+
+    run(prc_cfg, run_db, cmps).await;
 }
 
-pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
+pub async fn run(
+    cfg: Arc<config::Config>,
+    db: data::DataLayer,
+    compositor: Arc<Mutex<layers::compositor::Compositor>>,
+) {
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
         buffer_size: cfg.audio.buffer_size,
@@ -123,24 +148,6 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
             }
         }
     }
-
-    let mut compositor = Arc::new(tokio::sync::Mutex::new(
-        layers::compositor::Compositor::new(),
-    ));
-    let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
-    ctrl.bootstrap().await;
-
-    controller::Controller::watch_state_changes(
-        db.clone(),
-        ctrl.updates.clone(),
-        compositor.clone(),
-    );
-
-    controller::Controller::watch_layer_changes(
-        db.clone(),
-        ctrl.updates.clone(),
-        compositor.clone(),
-    );
 
     let map =
         pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");

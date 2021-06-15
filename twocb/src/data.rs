@@ -78,7 +78,27 @@ impl DataLayer {
 
     //pub fn get_layers() -> Vec<u8> {}
 
-    pub fn insert_link(&mut self, key: &str, value: &[u8]) {
+    pub fn get_layers(&self) -> HashMap<String, String> {
+        let mut packaged_states = HashMap::new();
+
+        for state in self.links.iter() {
+            match state {
+                Ok((k, v)) => {
+                    let key = std::str::from_utf8(&k).unwrap().to_string();
+                    let val = std::str::from_utf8(&v).unwrap().to_string();
+
+                    packaged_states.insert(key, val);
+                }
+                _ => {}
+            }
+        }
+
+        packaged_states
+    }
+
+    pub fn write_layer(&mut self, key: &str, value: &[u8]) {
         self.links.insert(key, value);
     }
+
+
 }

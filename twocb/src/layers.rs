@@ -14,8 +14,12 @@ pub mod compositor;
 
 #[derive(Serialize)]
 pub struct LinkAllocation {
+    #[serde(skip_serializing)]
     id: usize,
+    #[serde(skip_serializing)]
     name: String,
+
+    #[serde(flatten)]
     pub link: Arc<Mutex<Link>>,
 }
 
