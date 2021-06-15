@@ -55,7 +55,7 @@ impl Compositor {
         self.links.push(la);
     }
 
-    pub fn remove_link(&mut self, name: String) -> bool {
+    pub fn remove_link(&mut self, name: &str) -> bool {
         return self
             .links
             .iter()

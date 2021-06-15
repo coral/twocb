@@ -130,7 +130,13 @@ pub async fn run(cfg: Arc<config::Config>, db: data::DataLayer) {
     let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
     ctrl.bootstrap().await;
 
-    controller::Controller::watch_data_changes(
+    controller::Controller::watch_state_changes(
+        db.clone(),
+        ctrl.updates.clone(),
+        compositor.clone(),
+    );
+
+    controller::Controller::watch_layer_changes(
         db.clone(),
         ctrl.updates.clone(),
         compositor.clone(),

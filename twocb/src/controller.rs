@@ -73,7 +73,7 @@ impl Controller {
         self.load_link(knuck).await;
     }
 
-    pub fn watch_data_changes(
+    pub fn watch_state_changes(
         db: data::DataLayer,
         changes: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>>,
         compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
@@ -92,6 +92,25 @@ impl Controller {
                     }
                 }
             }
+        });
+    }
+
+    pub fn watch_layer_changes(&mut self, 
+    ) {
+        let lc_db = self.data.clone();
+        tokio::spawn(async move {
+            let subscriber = lc_db.links.watch_prefix(vec![]);
+            for event in subscriber {
+                match event {
+                    sled::Event::Insert { key, value } => {
+                        let k = std::str::from_utf8(&key).unwrap();
+                        //l.write_pattern_state(k, &value)
+                    }
+                    sled::Event::Remove  { key }=> {
+                       self.remove_link(std::str::from_utf8(&key).unwrap()); 
+                    }
+                }
+             }
         });
     }
 
@@ -125,6 +144,10 @@ impl Controller {
         }
         let newlink = Link::create(link.name, steps);
         self.compositor.lock().await.add_link(newlink).await;
+    }
+
+    async fn remove_link(&mut self, key: &str) {
+        self.compositor.lock().await.remove_link(key);
     }
 
     fn instantiate(
