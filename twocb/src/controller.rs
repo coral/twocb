@@ -80,6 +80,7 @@ impl Controller {
 
                 drx: rx,
             };
+            dbg!(&newstep);
 
             let key = &format!("{}_{}", &link.name, &step.pattern);
             match self.data.get_state(key) {

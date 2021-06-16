@@ -5,6 +5,7 @@ use serde::{
     Deserialize, Serialize,
 };
 
+use std::fmt;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use strum_macros;
@@ -80,6 +81,16 @@ impl Serialize for Step {
         state.serialize_field("engine_type", &self.engine_type.to_string())?;
         state.serialize_field("blendmode", &self.blend_mode.to_string())?;
         state.end()
+    }
+}
+
+impl fmt::Debug for Step {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Step")
+            .field("pattern", &self.pattern.name())
+            .field("engine_type", &self.engine_type.to_string())
+            .field("blendmode", &self.blend_mode.to_string())
+            .finish()
     }
 }
 
