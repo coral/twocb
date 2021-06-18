@@ -2,6 +2,7 @@ use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
 
+use log::error;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 pub struct Controller {
@@ -68,13 +69,19 @@ impl Controller {
         });
     }
 
-    async fn load_link(&mut self, link: DeLink) {
+    async fn load_link(&mut self, link: DeLink) -> Result<(), &str> {
         let store = serde_json::to_vec(&link).unwrap();
         let mut steps = Vec::new();
         for step in link.steps {
             let (mut tx, mut rx) = mpsc::channel(5);
+            let pt = match self.instantiate(&step.pattern, step.engine_type) {
+                Ok(pattern) => pattern,
+                Err(e) => {
+                    return Err(e);
+                }
+            };
             let mut newstep = Step {
-                pattern: self.instantiate(&step.pattern, step.engine_type).unwrap(),
+                pattern: pt,
                 blend_mode: step.blendmode,
                 engine_type: step.engine_type,
 
@@ -99,6 +106,8 @@ impl Controller {
         self.compositor.lock().await.remove_link(&key);
         self.compositor.lock().await.add_link(newlink);
         self.data.write_layer(&key, &store);
+
+        Ok(())
     }
 
     pub async fn remove_link(&mut self, key: &str) -> bool {
@@ -106,8 +115,8 @@ impl Controller {
         self.compositor.lock().await.remove_link(key)
     }
 
-    pub async fn add_link(&mut self, new_link: DeLink) {
-        self.load_link(new_link).await;
+    pub async fn add_link(&mut self, new_link: DeLink) -> Result<(), &str> {
+        self.load_link(new_link).await
     }
     pub async fn get_links_string(&self) -> String {
         serde_json::to_string(&self.compositor.lock().await.links).unwrap()
@@ -127,7 +136,6 @@ impl Controller {
                 Some(v) => return Ok(v),
                 None => return Err("Could not find DSE pattern"),
             },
-            _ => Err("Could not find pattern"),
         }
     }
 }

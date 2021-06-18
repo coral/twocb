@@ -95,7 +95,7 @@ struct Rt {
 
 impl DynamicPattern {
     pub fn new(path: std::path::PathBuf) -> DynamicPattern {
-        let tp = runtime::Builder::new_current_thread().build().unwrap();
+        //let tp = runtime::Builder::new_current_thread().build().unwrap();
         // let (tx, rx) = oneshot::channel();
 
         // tp.spawn(async move {
