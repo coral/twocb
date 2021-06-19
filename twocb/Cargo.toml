@@ -37,3 +37,4 @@ zeroconf = "0.7.1"
 strum = { version = "0.21", features = ["derive"] }
 strum_macros = "0.21"
 midir = "0.7.0"
+async-trait = "0.1.50"

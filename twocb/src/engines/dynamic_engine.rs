@@ -2,12 +2,14 @@ use crate::engines;
 use crate::producer;
 use glob::glob;
 use log::debug;
+use log::error;
 use rusty_v8 as v8;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
 use std::sync::Arc;
+use std::thread;
 use tokio::runtime;
 use tokio::sync::oneshot;
 
@@ -76,12 +78,14 @@ fn shutdown_runtime() {
     v8::V8::shutdown_platform();
 }
 
+struct DynamicHolder {}
+
 struct DynamicPattern {
     path: std::path::PathBuf,
     //tp: tokio::runtime::Runtime,
     active: bool,
 
-    isolate: Option<v8::OwnedIsolate>,
+    isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
     setup: Option<v8::Global<v8::Function>>,
     register: Option<v8::Global<v8::Function>>,
@@ -94,50 +98,42 @@ struct Rt {
 }
 
 impl DynamicPattern {
-    pub fn new(path: std::path::PathBuf) -> DynamicPattern {
-        //let tp = runtime::Builder::new_current_thread().build().unwrap();
-        // let (tx, rx) = oneshot::channel();
-
-        // tp.spawn(async move {
-        //     let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-        //     let global_context;
-        //     {
-        //         let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-        //         let context = v8::Context::new(handle_scope);
-        //         global_context = v8::Global::new(handle_scope, context);
-        //     }
-        //     tx.send(Rt {
-        //         isolate,
-        //         context: global_context,
-        //     });
+    pub async fn new(path: std::path::PathBuf) -> DynamicHolder {
+        // thread::spawn(move || {
+        //     // some work here
         // });
 
-        // let rtv = rx.await.unwrap();
+        let (tx, rx) = oneshot::channel();
 
-        let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-        let global_context;
-        {
-            let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(handle_scope);
-            global_context = v8::Global::new(handle_scope, context);
-        }
+        tokio::spawn(async move {
+            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+            let global_context;
+            {
+                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+                let context = v8::Context::new(handle_scope);
+                global_context = v8::Global::new(handle_scope, context);
+            }
 
-        let mut d = DynamicPattern {
-            path,
+            tx.send(isolate.thread_safe_handle());
 
-            active: false,
-            // tp,
-            isolate: Some(isolate),
-            context: global_context,
-            setup: None,
-            register: None,
-            render: None,
-        };
+            let mut d = DynamicPattern {
+                path,
 
-        d.load();
-        //d.register();
+                active: false,
+                // tp,
+                isolate: isolate,
+                context: global_context,
+                setup: None,
+                register: None,
+                render: None,
+            };
 
-        return d;
+            d.load();
+        });
+
+        let rtv = rx.await.unwrap();
+
+        return DynamicHolder {};
     }
 
     fn load(&mut self) {
