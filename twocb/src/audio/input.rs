@@ -34,7 +34,15 @@ impl Input {
             .default_input_device()
             .expect("Failed to get default input device");
 
-        info!("Audio input device selected: {}", device.name().unwrap());
+        let device_name = match device.name() {
+            Ok(device_name) => device_name,
+            Err(e) => {
+                error!("Could not get device name: {}", e);
+                "no-device".to_string()
+            }
+        };
+
+        info!("Audio input device selected: {}", device_name);
 
         let config = &cpal::StreamConfig {
             channels: self.stream_settings.channels,

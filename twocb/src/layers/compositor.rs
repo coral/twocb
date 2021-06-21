@@ -27,7 +27,7 @@ impl Compositor {
         }
     }
 
-    pub async fn add_link(&mut self, link: Link) {
+    pub fn add_link(&mut self, link: Link) {
         // for s in link.steps.iter_mut() {
         //     let key = &format!("{}_{}", &link.name, s.pattern.name());
         //     match self.db.subscribe(key).await {
@@ -55,7 +55,7 @@ impl Compositor {
         self.links.push(la);
     }
 
-    pub fn remove_link(&mut self, name: String) -> bool {
+    pub fn remove_link(&mut self, name: &str) -> bool {
         return self
             .links
             .iter()

@@ -1,5 +1,6 @@
 use crate::audio;
 use crossbeam_channel;
+use log::error;
 use rustchord;
 use tokio::sync::broadcast;
 
@@ -44,13 +45,19 @@ impl Colorchord {
 
     pub fn run(&mut self) {
         loop {
-            let audiodata = self.dr.recv().unwrap();
-            self.nf.run(&audiodata);
-            let m = NoteResult {
-                notes: self.nf.get_notes(),
-                folded: self.nf.get_folded().to_owned(),
-            };
-            let _ = self.tx.send(m);
+            match self.dr.recv() {
+                Ok(audiodata) => {
+                    self.nf.run(&audiodata);
+                    let m = NoteResult {
+                        notes: self.nf.get_notes(),
+                        folded: self.nf.get_folded().to_owned(),
+                    };
+                    let _ = self.tx.send(m);
+                }
+                Err(e) => {
+                    error!("Colorchord recieve error: {}", e);
+                }
+            }
         }
     }
 }
