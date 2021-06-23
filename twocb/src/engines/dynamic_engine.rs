@@ -8,31 +8,49 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 use tokio::runtime;
+use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 
 pub struct DynamicEngine {
-    inventory: HashMap<String, Box<dyn Fn() -> Box<dyn engines::pattern::Pattern>>>,
     pattern_folder: String,
     global_scope: String,
 }
 
 impl engines::Engine for DynamicEngine {
     fn bootstrap(&mut self) -> anyhow::Result<()> {
-        self.init_patterns();
+        //self.init_patterns();
         self.watch();
         initalize_runtime();
         Ok(())
     }
 
     fn list(&self) -> Vec<String> {
-        self.inventory.keys().cloned().collect()
+        match glob(&self.pattern_folder) {
+            Ok(p) => {
+                let mut rp = Vec::new();
+                for entry in p {
+                    match entry {
+                        Ok(path) => {
+                            rp.push(path.file_name().unwrap().to_str().unwrap().to_string())
+                        }
+                        _ => {}
+                    }
+                }
+                rp
+            }
+            Err(e) => Vec::new(),
+        }
     }
 
     fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern>> {
-        self.inventory.get(name).map(|p| p())
+        match DynamicPattern::new(PathBuf::from(name)) {
+            Some(d) => return Some(Box::new(d)),
+            None => None,
+        }
     }
 }
 
@@ -44,24 +62,9 @@ impl DynamicEngine {
             fs::read_to_string(&global_scope).expect("Something went wrong reading the file");
 
         return DynamicEngine {
-            inventory: HashMap::new(),
             pattern_folder: pattern_folder.to_string(),
             global_scope: code,
         };
-    }
-
-    fn init_patterns(&mut self) {
-        for entry in glob(&self.pattern_folder).expect("Failed to read dynamic pattern") {
-            match entry {
-                Ok(path) => {
-                    self.inventory.insert(
-                        path.file_name().unwrap().to_str().unwrap().to_string(),
-                        Box::new(move || Box::new(DynamicPattern::new(path.clone()))),
-                    );
-                }
-                _ => {}
-            }
-        }
     }
 
     fn watch(&mut self) {}
@@ -78,7 +81,29 @@ fn shutdown_runtime() {
     v8::V8::shutdown_platform();
 }
 
-struct DynamicHolder {}
+struct DynamicHolder {
+    frame_channel: mpsc::Sender<Arc<producer::Frame>>,
+}
+
+impl engines::pattern::Pattern for DynamicHolder {
+    fn name(&self) -> String {
+        return "ok".to_string();
+    }
+
+    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+        // Ok this sucks
+        // This needs to be called on the same thread as we initialized the pattern on.
+        // Really sad
+        // But w/e we can come up with some dumb thread pool.
+        //self.dynamic_process();
+        return vec![[1.0, 0.0, 1.0, 1.0]; 864];
+    }
+    fn get_state(&self) -> Vec<u8> {
+        return Vec::new();
+    }
+
+    fn set_state(&mut self, data: &[u8]) {}
+}
 
 struct DynamicPattern {
     path: std::path::PathBuf,
@@ -92,16 +117,13 @@ struct DynamicPattern {
     render: Option<v8::Global<v8::Function>>,
 }
 
-struct Rt {
-    isolate: v8::OwnedIsolate,
-    context: v8::Global<v8::Context>,
-}
-
 impl DynamicPattern {
-    pub async fn new(path: std::path::PathBuf) -> DynamicHolder {
+    pub fn new(path: std::path::PathBuf) -> Option<DynamicHolder> {
         // thread::spawn(move || {
         //     // some work here
         // });
+
+        let (frame_tx, mut frame_rx) = mpsc::channel(5);
 
         let (tx, rx) = oneshot::channel();
 
@@ -131,9 +153,11 @@ impl DynamicPattern {
             d.load();
         });
 
-        let rtv = rx.await.unwrap();
+        //let rtv = rx.await.unwrap();
 
-        return DynamicHolder {};
+        return Some(DynamicHolder {
+            frame_channel: frame_tx,
+        });
     }
 
     fn load(&mut self) {
@@ -141,8 +165,7 @@ impl DynamicPattern {
             .expect("Something went wrong reading the global.js file");
         let codepath = self.path.as_path();
         let code = fs::read_to_string(codepath).expect("Something went wrong reading the file");
-        let isolate = self.isolate.as_mut().unwrap();
-        let scope = &mut v8::HandleScope::with_context(isolate, &self.context);
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         //load global
         {
@@ -189,8 +212,7 @@ impl DynamicPattern {
     }
 
     fn dynamic_process(&mut self) {
-        let scope =
-            &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.render.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
@@ -253,24 +275,4 @@ impl DynamicPattern {
         let function_global_handle = v8::Global::new(scope, function);
         Some(function_global_handle)
     }
-}
-
-impl engines::pattern::Pattern for DynamicPattern {
-    fn name(&self) -> String {
-        return "ok".to_string();
-    }
-
-    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
-        // Ok this sucks
-        // This needs to be called on the same thread as we initialized the pattern on.
-        // Really sad
-        // But w/e we can come up with some dumb thread pool.
-        self.dynamic_process();
-        return vec![[1.0, 0.0, 1.0, 1.0]; 864];
-    }
-    fn get_state(&self) -> Vec<u8> {
-        return Vec::new();
-    }
-
-    fn set_state(&mut self, data: &[u8]) {}
 }
