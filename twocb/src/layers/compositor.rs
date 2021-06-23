@@ -6,8 +6,7 @@ use atomic_counter::AtomicCounter;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::mem;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 pub struct Compositor {
     pub links: Vec<LinkAllocation>,
@@ -44,11 +43,11 @@ impl Compositor {
         // }
 
         let name = link.name.clone();
-        //let arclink = Arc::new(Mutex::new(link));
+        let arclink = Arc::new(Mutex::new(link));
         let la = LinkAllocation {
             id: self.counter.inc(),
             name,
-            link: link,
+            link: arclink.clone(),
         };
 
         //self.lookup.insert(name.clone() + "_" + , v)
@@ -60,14 +59,14 @@ impl Compositor {
         return self
             .links
             .iter()
-            .position(|n| n.link.name == name)
+            .position(|n| n.link.lock().unwrap().name == name)
             .map(|e| self.links.remove(e))
             .is_some();
     }
 
-    pub async fn write_pattern_state(&mut self, key: &str, data: &[u8]) {
+    pub fn write_pattern_state(&mut self, key: &str, data: &[u8]) {
         for l in &mut self.links {
-            for step in &mut l.link.steps {
+            for step in &mut l.link.lock().unwrap().steps {
                 let nk = l.name.clone() + "_" + &step.pattern.name();
                 if &nk == key {
                     step.pattern.set_state(data);
@@ -82,26 +81,13 @@ impl Compositor {
         let mut handles = vec![];
         for la in &self.links {
             let cid = la.id;
-            let link = &la.link;
+            let link = la.link.clone();
             let frame = f.clone();
             handles.push(tokio::spawn(async move {
-                // let mut l = link.lock();
-                // let res = l.render(frame);
                 LinkResult {
                     id: cid,
-                    output: link.render(frame).await,
+                    output: link.lock().unwrap().render(frame),
                 }
-
-                // match link.lock() {
-                //     Ok(v) => LinkResult {
-                //         id: cid,
-                //         output: v.render(frame).await,
-                //     },
-                //     _ => LinkResult {
-                //         id: cid,
-                //         output: vec![[1.0, 0.0, 1.0, 1.0]; 1],
-                //     },
-                // }
             }));
         }
 

@@ -9,7 +9,7 @@ mod foldeddemo;
 mod strobe;
 
 pub struct RSEngine {
-    inventory: HashMap<String, Box<dyn Fn() -> Box<dyn engines::pattern::Pattern>>>,
+    inventory: HashMap<String, Box<dyn Fn() -> Box<dyn engines::pattern::Pattern + Send>>>,
 }
 
 impl engines::Engine for RSEngine {
@@ -31,7 +31,7 @@ impl engines::Engine for RSEngine {
         self.inventory.keys().cloned().collect()
     }
 
-    fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern>> {
+    fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern + Send>> {
         self.inventory.get(name).map(|p| p())
     }
 }

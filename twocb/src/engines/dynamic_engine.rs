@@ -9,9 +9,10 @@ use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::mpsc;
 use std::sync::Arc;
-use tokio::sync::mpsc;
 use tokio::sync::oneshot;
+use tokio::task;
 
 pub struct DynamicEngine {
     pattern_folder: String,
@@ -44,7 +45,7 @@ impl engines::Engine for DynamicEngine {
         }
     }
 
-    fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern>> {
+    fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern + Send>> {
         match DynamicPattern::new(PathBuf::from(name)) {
             Some(d) => return Some(Box::new(d)),
             None => None,
@@ -90,18 +91,19 @@ impl engines::pattern::Pattern for DynamicHolder {
         return "ok".to_string();
     }
 
-    async fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         // Ok this sucks
         // This needs to be called on the same thread as we initialized the pattern on.
         // Really sad
         // But w/e we can come up with some dumb thread pool.
-        //self.dynamic_process();
+
         self.frame_channel.send(_frame);
 
-        match self.result_channel.recv().await {
-            Some(v) => v,
-            None => vec![[1.0, 0.0, 1.0, 1.0]; 864],
+        match self.result_channel.recv() {
+            Ok(v) => v,
+            Err(_) => vec![[1.0, 0.0, 1.0, 1.0]; 864],
         }
+        //vec![[1.0, 0.0, 1.0, 1.0]; 864]
     }
     fn get_state(&self) -> Vec<u8> {
         return Vec::new();
@@ -126,12 +128,10 @@ impl DynamicPattern {
         //     // some work here
         // });
 
-        let (frame_tx, mut frame_rx) = mpsc::channel(5);
-        let (result_tx, mut result_rx) = mpsc::channel(5);
+        let (frame_tx, mut frame_rx) = mpsc::channel();
+        let (result_tx, mut result_rx) = mpsc::channel();
 
-        let (tx, rx) = oneshot::channel();
-
-        tokio::spawn(async move {
+        task::spawn_blocking(move || {
             let mut isolate = v8::Isolate::new(v8::CreateParams::default());
             let global_context;
             {
@@ -140,7 +140,7 @@ impl DynamicPattern {
                 global_context = v8::Global::new(handle_scope, context);
             }
 
-            tx.send(isolate.thread_safe_handle());
+            //tx.send(isolate.thread_safe_handle());
 
             let mut d = DynamicPattern {
                 path,

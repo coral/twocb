@@ -19,7 +19,7 @@ impl pattern::Pattern for Strobe {
         return "strobe".to_string();
     }
 
-    async fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
         for (i, pixel) in frame.mapping.iter().enumerate() {
             if frame.squarebool() {

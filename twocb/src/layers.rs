@@ -21,16 +21,17 @@ pub struct LinkAllocation {
     name: String,
 
     #[serde(flatten)]
-    pub link: Link,
+    pub link: Arc<Mutex<Link>>,
 }
 
-#[derive(Debug, Clone)]
+unsafe impl Send for LinkAllocation {}
+
+#[derive(Debug)]
 struct LinkResult {
     id: usize,
     output: Vec<vecmath::Vector4<f64>>,
 }
 
-unsafe impl Send for Link {}
 #[derive(Serialize)]
 pub struct Link {
     name: String,
@@ -39,6 +40,8 @@ pub struct Link {
     #[serde(skip_serializing)]
     output: Vec<vecmath::Vector4<f64>>,
 }
+
+unsafe impl Send for Link {}
 
 impl Link {
     pub fn create(name: String, steps: Vec<Step>) -> Link {
@@ -49,14 +52,14 @@ impl Link {
         }
     }
 
-    pub async fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    pub fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         for (i, stp) in self.steps.iter_mut().enumerate() {
             let out = stp.pattern.process(frame.clone());
             if i == 0 {
-                self.output = out.await
+                self.output = out
             } else {
                 self.output =
-                    blending::blend(stp.blend_mode, mem::take(&mut self.output), out.await, 1.0);
+                    blending::blend(stp.blend_mode, mem::take(&mut self.output), out, 1.0);
             }
         }
 
@@ -64,8 +67,10 @@ impl Link {
     }
 }
 
+unsafe impl Send for Step {}
+
 pub struct Step {
-    pub pattern: Box<dyn Pattern>,
+    pub pattern: Box<dyn Pattern + Send>,
     pub engine_type: EngineType,
     pub blend_mode: blending::BlendModes,
 

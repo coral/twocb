@@ -59,7 +59,7 @@ impl Controller {
                     sled::Event::Insert { key, value } => {
                         let k = std::str::from_utf8(&key).unwrap();
                         let l = &mut compositor.lock().await;
-                        l.write_pattern_state(k, &value).await
+                        l.write_pattern_state(k, &value)
                     }
                     _ => {
                         dbg!("SOMETHING ELSE");
@@ -126,7 +126,7 @@ impl Controller {
         &mut self,
         name: &str,
         engine_type: EngineType,
-    ) -> Result<Box<dyn Pattern>, &'static str> {
+    ) -> Result<Box<dyn Pattern + Send>, &'static str> {
         match engine_type {
             EngineType::Rse => match self.rse.instantiate_pattern(name) {
                 Some(v) => return Ok(v),

@@ -19,7 +19,7 @@ impl pattern::Pattern for FoldedDemo {
         return "foldeddemo".to_string();
     }
 
-    async fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let dd = frame.square();
         let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
         let factor = self.s.factor;
