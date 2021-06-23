@@ -21,7 +21,7 @@ pub struct LinkAllocation {
     name: String,
 
     #[serde(flatten)]
-    pub link: Arc<Mutex<Link>>,
+    pub link: Link,
 }
 
 #[derive(Debug, Clone)]
@@ -49,14 +49,14 @@ impl Link {
         }
     }
 
-    pub fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    pub async fn render(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         for (i, stp) in self.steps.iter_mut().enumerate() {
             let out = stp.pattern.process(frame.clone());
             if i == 0 {
-                self.output = out
+                self.output = out.await
             } else {
                 self.output =
-                    blending::blend(stp.blend_mode, mem::take(&mut self.output), out, 1.0);
+                    blending::blend(stp.blend_mode, mem::take(&mut self.output), out.await, 1.0);
             }
         }
 

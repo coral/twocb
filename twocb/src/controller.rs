@@ -59,7 +59,7 @@ impl Controller {
                     sled::Event::Insert { key, value } => {
                         let k = std::str::from_utf8(&key).unwrap();
                         let l = &mut compositor.lock().await;
-                        l.write_pattern_state(k, &value)
+                        l.write_pattern_state(k, &value).await
                     }
                     _ => {
                         dbg!("SOMETHING ELSE");

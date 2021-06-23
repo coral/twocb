@@ -1,17 +1,15 @@
 use crate::engines;
 use crate::producer;
+use async_trait::async_trait;
 use glob::glob;
 use log::debug;
 use log::error;
 use rusty_v8 as v8;
 use std::borrow::Borrow;
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::thread;
-use tokio::runtime;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 
@@ -83,20 +81,27 @@ fn shutdown_runtime() {
 
 struct DynamicHolder {
     frame_channel: mpsc::Sender<Arc<producer::Frame>>,
+    result_channel: mpsc::Receiver<Vec<vecmath::Vector4<f64>>>,
 }
 
+#[async_trait]
 impl engines::pattern::Pattern for DynamicHolder {
     fn name(&self) -> String {
         return "ok".to_string();
     }
 
-    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    async fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         // Ok this sucks
         // This needs to be called on the same thread as we initialized the pattern on.
         // Really sad
         // But w/e we can come up with some dumb thread pool.
         //self.dynamic_process();
-        return vec![[1.0, 0.0, 1.0, 1.0]; 864];
+        self.frame_channel.send(_frame);
+
+        match self.result_channel.recv().await {
+            Some(v) => v,
+            None => vec![[1.0, 0.0, 1.0, 1.0]; 864],
+        }
     }
     fn get_state(&self) -> Vec<u8> {
         return Vec::new();
@@ -108,8 +113,6 @@ impl engines::pattern::Pattern for DynamicHolder {
 struct DynamicPattern {
     path: std::path::PathBuf,
     //tp: tokio::runtime::Runtime,
-    active: bool,
-
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
     setup: Option<v8::Global<v8::Function>>,
@@ -124,6 +127,7 @@ impl DynamicPattern {
         // });
 
         let (frame_tx, mut frame_rx) = mpsc::channel(5);
+        let (result_tx, mut result_rx) = mpsc::channel(5);
 
         let (tx, rx) = oneshot::channel();
 
@@ -141,8 +145,6 @@ impl DynamicPattern {
             let mut d = DynamicPattern {
                 path,
 
-                active: false,
-                // tp,
                 isolate: isolate,
                 context: global_context,
                 setup: None,
@@ -157,6 +159,7 @@ impl DynamicPattern {
 
         return Some(DynamicHolder {
             frame_channel: frame_tx,
+            result_channel: result_rx,
         });
     }
 

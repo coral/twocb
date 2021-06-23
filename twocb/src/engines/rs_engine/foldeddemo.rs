@@ -1,6 +1,7 @@
 use crate::engines::pattern;
 use crate::pixels::Pixel;
 use crate::producer;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -12,12 +13,13 @@ pub struct FoldedDemo {
     s: Settings,
 }
 
+#[async_trait]
 impl pattern::Pattern for FoldedDemo {
     fn name(&self) -> String {
         return "foldeddemo".to_string();
     }
 
-    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    async fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let dd = frame.square();
         let mut d = vec![[0.0, 0.0, 0.0, 1.0]; frame.mapping.len()];
         let factor = self.s.factor;
