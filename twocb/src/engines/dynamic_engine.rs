@@ -46,9 +46,13 @@ impl engines::Engine for DynamicEngine {
     }
 
     fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern + Send>> {
-        match DynamicPattern::new(PathBuf::from(name)) {
-            Some(d) => return Some(Box::new(d)),
-            None => None,
+        let patternpath = std::path::Path::new(&self.pattern_folder).join(name);
+        match DynamicPattern::new(patternpath.to_path_buf()) {
+            Ok(d) => return Some(Box::new(d)),
+            Err(e) => {
+                error!("{}", e);
+                return None;
+            }
         }
     }
 }
@@ -85,7 +89,6 @@ struct DynamicHolder {
     result_channel: mpsc::Receiver<Vec<vecmath::Vector4<f64>>>,
 }
 
-#[async_trait]
 impl engines::pattern::Pattern for DynamicHolder {
     fn name(&self) -> String {
         return "ok".to_string();
@@ -123,61 +126,69 @@ struct DynamicPattern {
 }
 
 impl DynamicPattern {
-    pub fn new(path: std::path::PathBuf) -> Option<DynamicHolder> {
-        // thread::spawn(move || {
-        //     // some work here
-        // });
+    pub fn new(path: std::path::PathBuf) -> Result<DynamicHolder, std::io::Error> {
+        let global = match fs::read_to_string("files/support/global.js") {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        };
+
+        let codepath = path.as_path();
+        let code = match fs::read_to_string(codepath) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        };
 
         let (frame_tx, mut frame_rx) = mpsc::channel();
         let (result_tx, mut result_rx) = mpsc::channel();
 
-        task::spawn_blocking(move || {
-            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-            let global_context;
+        std::thread::spawn(move || {
             {
-                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-                let context = v8::Context::new(handle_scope);
-                global_context = v8::Global::new(handle_scope, context);
+                let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+                let global_context;
+                {
+                    let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+                    let context = v8::Context::new(handle_scope);
+                    global_context = v8::Global::new(handle_scope, context);
+                }
+
+                //tx.send(isolate.thread_safe_handle());
+
+                let mut d = DynamicPattern {
+                    path,
+
+                    isolate: isolate,
+                    context: global_context,
+                    setup: None,
+                    register: None,
+                    render: None,
+                };
+
+                d.load(&global, &code);
+
+                loop {
+                    let frame = frame_rx.recv();
+                    d.dynamic_process();
+                }
             }
-
-            //tx.send(isolate.thread_safe_handle());
-
-            let mut d = DynamicPattern {
-                path,
-
-                isolate: isolate,
-                context: global_context,
-                setup: None,
-                register: None,
-                render: None,
-            };
-
-            d.load();
         });
 
-        //let rtv = rx.await.unwrap();
-
-        return Some(DynamicHolder {
+        return Ok(DynamicHolder {
             frame_channel: frame_tx,
             result_channel: result_rx,
         });
     }
 
-    fn load(&mut self) {
-        let global = fs::read_to_string("files/support/global.js")
-            .expect("Something went wrong reading the global.js file");
-        let codepath = self.path.as_path();
-        let code = fs::read_to_string(codepath).expect("Something went wrong reading the file");
+    fn load(&mut self, global: &str, code: &str) {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         //load global
         {
-            let code = v8::String::new(scope, &global).unwrap();
+            let code = v8::String::new(scope, global).unwrap();
             let script = v8::Script::compile(scope, code, None).unwrap();
             script.run(scope).unwrap();
         }
 
-        let code = v8::String::new(scope, &code).unwrap();
+        let code = v8::String::new(scope, code).unwrap();
         let script = v8::Script::compile(scope, code, None).unwrap();
         //Execute script to load functions into memory
         script.run(scope).unwrap();

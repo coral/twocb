@@ -23,7 +23,7 @@ impl Controller {
         let mut rse = RSEngine::new();
         rse.bootstrap().unwrap();
 
-        let mut dse = DynamicEngine::new("files/dynamic/*.js", "files/support/global.js");
+        let mut dse = DynamicEngine::new("files/dynamic/", "files/support/global.js");
         dse.bootstrap().unwrap();
 
         return Controller {
