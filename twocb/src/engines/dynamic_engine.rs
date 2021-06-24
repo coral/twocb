@@ -104,13 +104,13 @@ impl engines::pattern::Pattern for DynamicHolder {
         return "ok".to_string();
     }
 
-    fn process(&mut self, _frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
-        // Ok this sucks
-        // This needs to be called on the same thread as we initialized the pattern on.
-        // Really sad
-        // But w/e we can come up with some dumb thread pool.
-
-        self.frame_channel.send(_frame);
+    fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+        match self.frame_channel.send(frame) {
+            Err(e) => {
+                error!("Could not send frame to dynamic pattern: {}", e);
+            }
+            _ => {}
+        }
 
         match self.result_channel.recv() {
             Ok(v) => v,
@@ -119,7 +119,6 @@ impl engines::pattern::Pattern for DynamicHolder {
                 vec![[1.0, 0.0, 1.0, 1.0]; 864]
             }
         }
-        //vec![[1.0, 0.0, 1.0, 1.0]; 864]
     }
     fn get_state(&self) -> Vec<u8> {
         return Vec::new();
