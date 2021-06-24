@@ -1,6 +1,7 @@
 use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
+use crate::pixels;
 
 use log::error;
 use std::sync::Arc;
@@ -19,11 +20,12 @@ impl Controller {
     pub fn new(
         data: data::DataLayer,
         compositor: Arc<tokio::sync::Mutex<compositor::Compositor>>,
+        mapping: Vec<pixels::Pixel>,
     ) -> Controller {
         let mut rse = RSEngine::new();
         rse.bootstrap().unwrap();
 
-        let mut dse = DynamicEngine::new("files/dynamic/", "files/support/global.js");
+        let mut dse = DynamicEngine::new("files/dynamic/", "files/support/global.js", mapping);
         dse.bootstrap().unwrap();
 
         return Controller {

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::*;
 
 use std::fs;
+use std::path::Path;
 use vecmath;
 
 pub struct Mapping {
@@ -9,7 +10,7 @@ pub struct Mapping {
 }
 
 impl Mapping {
-    pub fn load_from_file(filename: &str) -> Result<Vec<Pixel>> {
+    pub fn load_from_file(filename: &Path) -> Result<Vec<Pixel>> {
         let contents = fs::read_to_string(filename).expect("Could not read mapping");
         let v: Vec<Pixel> = serde_json::from_str(&contents)?;
         Ok(v)

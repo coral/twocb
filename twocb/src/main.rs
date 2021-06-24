@@ -60,10 +60,19 @@ pub async fn bootstrap() {
 
     let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
 
+    let map = match pixels::Mapping::load_from_file(
+        &std::path::Path::new("files/mappings/").join(&cfg.mapping),
+    ) {
+        Ok(map) => map,
+        Err(e) => {
+            panic!("Could not load mapping: {}", e);
+        }
+    };
+
     let mut compositor = Arc::new(tokio::sync::Mutex::new(
         layers::compositor::Compositor::new(),
     ));
-    let mut ctrl = controller::Controller::new(db.clone(), compositor.clone());
+    let mut ctrl = controller::Controller::new(db.clone(), compositor.clone(), map.clone());
     ctrl.bootstrap().await;
 
     controller::Controller::watch_state_changes(db.clone(), compositor.clone());
@@ -90,13 +99,14 @@ pub async fn bootstrap() {
     let run_db = db.clone();
     let cmps = compositor.clone();
 
-    run(prc_cfg, run_db, cmps).await;
+    run(prc_cfg, run_db, cmps, map.clone()).await;
 }
 
 pub async fn run(
     cfg: Arc<config::Config>,
     db: data::DataLayer,
     compositor: Arc<Mutex<layers::compositor::Compositor>>,
+    mapping: Vec<pixels::Pixel>,
 ) {
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
@@ -148,9 +158,7 @@ pub async fn run(
         }
     }
 
-    let map =
-        pixels::Mapping::load_from_file("files/mappings/v6.json").expect("Could not load mapping");
-    let mut prod = producer::Producer::new(60.0, map);
+    let mut prod = producer::Producer::new(60.0, mapping);
 
     prod.attach_colorchord(colorchord_channel);
     prod.attach_tempo(tempo_channel);

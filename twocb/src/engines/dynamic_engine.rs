@@ -1,4 +1,5 @@
 use crate::engines;
+use crate::pixels;
 use crate::producer;
 use async_trait::async_trait;
 use glob::glob;
@@ -11,6 +12,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::thread;
 use std::thread::JoinHandle;
 use tokio::sync::oneshot;
 use tokio::task;
@@ -18,6 +20,7 @@ use tokio::task;
 pub struct DynamicEngine {
     pattern_folder: String,
     global_scope: String,
+    mapping: Vec<pixels::Pixel>,
 }
 
 impl engines::Engine for DynamicEngine {
@@ -48,7 +51,7 @@ impl engines::Engine for DynamicEngine {
 
     fn instantiate_pattern(&self, name: &str) -> Option<Box<dyn engines::pattern::Pattern + Send>> {
         let patternpath = std::path::Path::new(&self.pattern_folder).join(name);
-        match DynamicPattern::new(patternpath.to_path_buf()) {
+        match DynamicPattern::new(patternpath.to_path_buf(), self.mapping.clone()) {
             Ok(d) => return Some(Box::new(d)),
             Err(e) => {
                 error!("{}", e);
@@ -59,7 +62,11 @@ impl engines::Engine for DynamicEngine {
 }
 
 impl DynamicEngine {
-    pub fn new(pattern_folder: &str, global_scope: &str) -> DynamicEngine {
+    pub fn new(
+        pattern_folder: &str,
+        global_scope: &str,
+        mapping: Vec<pixels::Pixel>,
+    ) -> DynamicEngine {
         let _global = fs::read_to_string(global_scope)
             .expect("Something went wrong reading the global.js file");
         let code =
@@ -68,6 +75,7 @@ impl DynamicEngine {
         return DynamicEngine {
             pattern_folder: pattern_folder.to_string(),
             global_scope: code,
+            mapping,
         };
     }
 
@@ -130,7 +138,10 @@ struct DynamicPattern {
 }
 
 impl DynamicPattern {
-    pub fn new(path: std::path::PathBuf) -> Result<DynamicHolder, std::io::Error> {
+    pub fn new(
+        path: std::path::PathBuf,
+        mapping: Vec<pixels::Pixel>,
+    ) -> Result<DynamicHolder, std::io::Error> {
         let global = match fs::read_to_string("files/support/global.js") {
             Ok(v) => v,
             Err(e) => return Err(e),
@@ -165,6 +176,7 @@ impl DynamicPattern {
             };
 
             d.load(&global, &code);
+            d.setup(mapping);
 
             loop {
                 match frame_rx.recv() {
@@ -232,6 +244,30 @@ impl DynamicPattern {
         // }
         // let m = result.unwrap().to_rust_string_lossy(try_catch);
         // dbg!(m);
+    }
+
+    fn setup(&mut self, mapping: Vec<pixels::Pixel>) {
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
+        let context: &v8::Context = self.context.borrow();
+        let function_global_handle = self.setup.as_ref().expect("function not loaded");
+        let function: &v8::Function = function_global_handle.borrow();
+
+        //Serialize mapping
+        let serialized_mapping = serde_json::to_string(&mapping).unwrap();
+        let mapping = v8::String::new(scope, &serialized_mapping).unwrap().into();
+
+        let mut try_catch = &mut v8::TryCatch::new(scope);
+        let global = context.global(try_catch).into();
+        let result = function.call(&mut try_catch, global, &[mapping]);
+        if result.is_none() {
+            let exception = try_catch.exception().unwrap();
+            let exception_string = exception
+                .to_string(&mut try_catch)
+                .unwrap()
+                .to_rust_string_lossy(&mut try_catch);
+
+            panic!("{}", exception_string);
+        }
     }
 
     fn dynamic_process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
