@@ -43,7 +43,12 @@ impl Controller {
                 Ok((k, v)) => {
                     let link: DeLink = serde_json::from_slice(&v).unwrap();
                     println!("{:?}", link);
-                    self.load_link(link).await;
+                    match self.load_link(link).await {
+                        Err(e) => {
+                            error!("Could not load link: {}", e);
+                        }
+                        _ => {}
+                    }
                 }
                 _ => {}
             }

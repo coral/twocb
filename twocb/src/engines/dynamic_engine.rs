@@ -96,6 +96,7 @@ fn shutdown_runtime() {
 struct DynamicHolder {
     frame_channel: mpsc::Sender<Arc<producer::Frame>>,
     result_channel: mpsc::Receiver<Vec<vecmath::Vector4<f64>>>,
+    cancel_channel: mpsc::Sender<bool>,
 }
 
 impl engines::pattern::Pattern for DynamicHolder {
@@ -155,8 +156,9 @@ impl DynamicPattern {
 
         let (frame_tx, mut frame_rx) = mpsc::channel();
         let (result_tx, result_rx) = mpsc::channel();
+        let (cancel_tx, cancel_rx) = mpsc::channel();
 
-        let handle = std::thread::spawn(move || {
+        std::thread::spawn(move || {
             let mut isolate = v8::Isolate::new(v8::CreateParams::default());
             let global_context;
             {
@@ -190,12 +192,20 @@ impl DynamicPattern {
                         error!("Dynamic pattern recieve error: {}", e);
                     }
                 }
+
+                match cancel_rx.try_recv() {
+                    Ok(_) => {
+                        return;
+                    }
+                    _ => {}
+                }
             }
         });
 
         return Ok(DynamicHolder {
             frame_channel: frame_tx,
             result_channel: result_rx,
+            cancel_channel: cancel_tx,
         });
     }
 
