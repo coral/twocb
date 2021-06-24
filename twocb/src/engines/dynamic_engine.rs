@@ -11,6 +11,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::thread::JoinHandle;
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -104,7 +105,10 @@ impl engines::pattern::Pattern for DynamicHolder {
 
         match self.result_channel.recv() {
             Ok(v) => v,
-            Err(_) => vec![[1.0, 0.0, 1.0, 1.0]; 864],
+            Err(e) => {
+                //error!("{}", e);
+                vec![[1.0, 0.0, 1.0, 1.0]; 864]
+            }
         }
         //vec![[1.0, 0.0, 1.0, 1.0]; 864]
     }
@@ -139,35 +143,40 @@ impl DynamicPattern {
         };
 
         let (frame_tx, mut frame_rx) = mpsc::channel();
-        let (result_tx, mut result_rx) = mpsc::channel();
+        let (result_tx, result_rx) = mpsc::channel();
 
-        std::thread::spawn(move || {
+        let handle = std::thread::spawn(move || {
+            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+            let global_context;
             {
-                let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-                let global_context;
-                {
-                    let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-                    let context = v8::Context::new(handle_scope);
-                    global_context = v8::Global::new(handle_scope, context);
-                }
+                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
+                let context = v8::Context::new(handle_scope);
+                global_context = v8::Global::new(handle_scope, context);
+            }
 
-                //tx.send(isolate.thread_safe_handle());
+            let mut d = DynamicPattern {
+                path,
 
-                let mut d = DynamicPattern {
-                    path,
+                isolate: isolate,
+                context: global_context,
+                setup: None,
+                register: None,
+                render: None,
+            };
 
-                    isolate: isolate,
-                    context: global_context,
-                    setup: None,
-                    register: None,
-                    render: None,
-                };
+            d.load(&global, &code);
 
-                d.load(&global, &code);
-
-                loop {
-                    let frame = frame_rx.recv();
-                    d.dynamic_process();
+            loop {
+                match frame_rx.recv() {
+                    Ok(frame) => match result_tx.send(d.dynamic_process(frame)) {
+                        Err(e) => {
+                            error!("Dynamic pattern produce error: {}", e);
+                        }
+                        _ => {}
+                    },
+                    Err(e) => {
+                        error!("Dynamic pattern recieve error: {}", e);
+                    }
                 }
             }
         });
@@ -225,7 +234,7 @@ impl DynamicPattern {
         // dbg!(m);
     }
 
-    fn dynamic_process(&mut self) {
+    fn dynamic_process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.render.as_ref().expect("function not loaded");
@@ -273,6 +282,8 @@ impl DynamicPattern {
             );
             res.copy_contents(slice)
         };
+
+        vec![[1.0, 0.0, 1.0, 1.0]; 864]
     }
 
     fn bind_function(
