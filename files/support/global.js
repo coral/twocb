@@ -1,5 +1,6 @@
 var _mapping = {};
 var _pixelBuffer;
+var start = new Date().getTime();
 
 function _internalRegister() {
     return JSON.stringify(register());
@@ -13,7 +14,9 @@ function _setup(nm) {
 
 function _internalRender() {
     if (typeof beforeRender === "function") {
-        beforeRender();
+        let delta = new Date().getTime();
+        beforeRender(start - delta);
+        start = delta;
     }
 
     _mapping.forEach((m) => {

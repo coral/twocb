@@ -1,8 +1,8 @@
-pixelCount = 768;
+pixelCount = 864;
 
 leader = 0;
 direction = 1;
-pixels = new Array(768);
+pixels = new Array(864);
 hue = 0;
 saturation = 1;
 

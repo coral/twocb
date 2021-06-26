@@ -328,7 +328,14 @@ impl DynamicPattern {
             res.copy_contents(slice)
         };
 
-        vec![[1.0, 0.0, 1.0, 1.0]; 864]
+        // let mut output = Vec::new();
+        // for i in v.chunks(3) {
+        //     output.push([i[0], i[1], i[2], 1.0]);
+        // }
+        // return output;
+        //vec![[1.0, 0.0, 1.0, 1.0]; 864]
+
+        v.chunks(3).map(|s| [s[0], s[1], s[2], 1.0]).collect()
     }
 
     fn bind_function(
