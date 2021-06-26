@@ -9,4 +9,6 @@ It's still in development and more info on how to run it will come in a bit.
 ### Special thanks
 
 -   [ben0x539](https://github.com/ben0x539) for all the Rust help
+-   [Love Olsson](https://github.com/loveolsson) for the initial design of the workflow in Go
 -   [cnlohr](https://github.com/cnlohr) for the inspiration
+-   [pajlada](https://github.com/pajlada) gachiGASM
