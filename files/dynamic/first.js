@@ -31,12 +31,12 @@ function beforeRender(frame, delta) {
     // hue += state.speed;
     fade = sin(frame.phase, 0.5);
     phase = sin(frame.phase, 1);
-    hue = 0.2;
+    hue = 0.1;
 }
 
 function render3D(index, x, y, z) {
     let m = (1 / 864) * index;
-    if (z < phase) {
+    if (z > phase) {
         hsv(index, hue, m, fade);
     } else {
         hsv(index, 0.0, 0.0, 0.0);
