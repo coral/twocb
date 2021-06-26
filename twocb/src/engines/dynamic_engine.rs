@@ -92,6 +92,8 @@ fn shutdown_runtime() {
 }
 
 struct DynamicHolder {
+    patternname: String,
+
     frame_channel: mpsc::Sender<Arc<producer::Frame>>,
     result_channel: mpsc::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
     cancel_channel: mpsc::Sender<bool>,
@@ -105,7 +107,7 @@ struct DynamicHolder {
 
 impl engines::pattern::Pattern for DynamicHolder {
     fn name(&self) -> String {
-        return "ok".to_string();
+        return self.patternname.clone();
     }
 
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
@@ -150,7 +152,6 @@ impl engines::pattern::Pattern for DynamicHolder {
 
     fn set_state(&mut self, data: &[u8]) {
         let state = std::str::from_utf8(&data).unwrap().to_string();
-        dbg!("injecting state: {}", &state);
         match self.setstate_channel.send(state) {
             Err(e) => {
                 error!("Could not send state to dynamic pattern: {}", e);
@@ -180,10 +181,10 @@ impl DynamicPattern {
             Err(e) => return Err(e),
         };
 
-        //Fix this later
+        //Fix this later, this is so dumb
         let codepath = path.as_path();
-        let code = match fs::read_to_string(codepath) {
-            Ok(v) => v,
+        let patternname = match fs::read_to_string(codepath) {
+            Ok(v) => String::from(path.file_name().unwrap().to_str().unwrap()),
             Err(e) => return Err(e),
         };
 
@@ -304,6 +305,8 @@ impl DynamicPattern {
         });
 
         return Ok(DynamicHolder {
+            patternname: patternname,
+
             frame_channel: frame_tx,
             result_channel: result_rx,
             cancel_channel: cancel_tx,
@@ -369,7 +372,6 @@ impl DynamicPattern {
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.set_state.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
-        dbg!(&state);
         let state = v8::String::new(scope, &state).unwrap().into();
 
         let mut try_catch = &mut v8::TryCatch::new(scope);

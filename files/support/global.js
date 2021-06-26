@@ -11,8 +11,8 @@ function _getState() {
     return JSON.stringify(state);
 }
 
-function _setState(state) {
-    _state = JSON.parse(state);
+function _setState(newstate) {
+    state = JSON.parse(newstate);
 }
 
 function _setup(nm) {
