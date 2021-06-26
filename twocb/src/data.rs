@@ -72,8 +72,15 @@ impl DataLayer {
         packaged_states
     }
 
-    pub fn write_state(&mut self, key: &str, value: &[u8]) {
+    pub fn write_state(&mut self, key: &str, value: &[u8]) -> Result<(), String> {
+        let _: serde::de::IgnoredAny = match serde_json::from_slice(&value) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        };
         self.state.insert(key, value);
+        Ok(())
     }
 
     //pub fn get_layers() -> Vec<u8> {}

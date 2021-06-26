@@ -24,10 +24,14 @@ async fn set_state(
     info: web::Json<NewState>,
     data: web::Data<RwLock<data::DataLayer>>,
 ) -> impl Responder {
-    data.write()
+    match data
+        .write()
         .await
-        .write_state(&info.key, info.state.as_bytes());
-    HttpResponse::Ok().body("hello")
+        .write_state(&info.key, info.state.as_bytes())
+    {
+        Ok(_) => HttpResponse::Ok().body("hello"),
+        Err(e) => HttpResponse::BadRequest().body("JSON ERROR: ".to_string() + &e),
+    }
 }
 
 #[get("/layers")]
