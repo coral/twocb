@@ -96,6 +96,10 @@ struct DynamicHolder {
     result_channel: mpsc::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
     cancel_channel: mpsc::Sender<bool>,
 
+    setstate_channel: mpsc::Sender<String>,
+    getstate_channel: mpsc::Receiver<Result<String, DynamicError>>,
+    reqstate_channel: mpsc::Sender<bool>,
+
     watcher: notify::FsEventWatcher,
 }
 
@@ -125,11 +129,35 @@ impl engines::pattern::Pattern for DynamicHolder {
             }
         }
     }
+
     fn get_state(&self) -> Vec<u8> {
-        return Vec::new();
+        self.reqstate_channel.send(true);
+
+        match self.getstate_channel.recv() {
+            Ok(v) => match v {
+                Ok(state) => {
+                    return state.as_bytes().to_vec();
+                }
+                Err(e) => {
+                    error!("Get state error: {}", e);
+                    return "{}".as_bytes().to_vec();
+                }
+            },
+            _ => {}
+        }
+        return "{}".as_bytes().to_vec();
     }
 
-    fn set_state(&mut self, data: &[u8]) {}
+    fn set_state(&mut self, data: &[u8]) {
+        let state = std::str::from_utf8(&data).unwrap().to_string();
+        dbg!("injecting state: {}", &state);
+        match self.setstate_channel.send(state) {
+            Err(e) => {
+                error!("Could not send state to dynamic pattern: {}", e);
+            }
+            _ => {}
+        }
+    }
 }
 
 struct DynamicPattern {
@@ -137,7 +165,8 @@ struct DynamicPattern {
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
     setup: Option<v8::Global<v8::Function>>,
-    register: Option<v8::Global<v8::Function>>,
+    get_state: Option<v8::Global<v8::Function>>,
+    set_state: Option<v8::Global<v8::Function>>,
     render: Option<v8::Global<v8::Function>>,
 }
 
@@ -151,6 +180,7 @@ impl DynamicPattern {
             Err(e) => return Err(e),
         };
 
+        //Fix this later
         let codepath = path.as_path();
         let code = match fs::read_to_string(codepath) {
             Ok(v) => v,
@@ -161,6 +191,10 @@ impl DynamicPattern {
         let (result_tx, result_rx) = mpsc::channel();
         let (cancel_tx, cancel_rx) = mpsc::channel();
         let (reload_tx, reload_rx) = mpsc::channel();
+
+        let (setstate_tx, setstate_rx) = mpsc::channel();
+        let (getstate_tx, getstate_rx) = mpsc::channel();
+        let (reqstate_tx, reqstate_rx) = mpsc::channel();
 
         let mut watcher = watcher(reload_tx, Duration::from_millis(50)).unwrap();
 
@@ -198,7 +232,8 @@ impl DynamicPattern {
                 isolate: isolate,
                 context: global_context,
                 setup: None,
-                register: None,
+                get_state: None,
+                set_state: None,
                 render: None,
             };
 
@@ -260,6 +295,11 @@ impl DynamicPattern {
                     }
                     _ => {}
                 }
+
+                match setstate_rx.try_recv() {
+                    Ok(state) => d.inject_state(state),
+                    _ => {}
+                }
             }
         });
 
@@ -267,6 +307,10 @@ impl DynamicPattern {
             frame_channel: frame_tx,
             result_channel: result_rx,
             cancel_channel: cancel_tx,
+
+            setstate_channel: setstate_tx,
+            getstate_channel: getstate_rx,
+            reqstate_channel: reqstate_tx,
 
             watcher: watcher,
         });
@@ -290,7 +334,8 @@ impl DynamicPattern {
 
         //Bind function handlers
         self.setup = DynamicPattern::bind_function(scope, context, "_setup");
-        self.register = DynamicPattern::bind_function(scope, context, "_internalRegister");
+        self.get_state = DynamicPattern::bind_function(scope, context, "_getState");
+        self.set_state = DynamicPattern::bind_function(scope, context, "_setState");
         self.render = DynamicPattern::bind_function(scope, context, "_internalRender");
 
         Ok(())
@@ -317,6 +362,55 @@ impl DynamicPattern {
         }
 
         Ok(())
+    }
+
+    fn inject_state(&mut self, state: String) {
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
+        let context: &v8::Context = self.context.borrow();
+        let function_global_handle = self.set_state.as_ref().expect("function not loaded");
+        let function: &v8::Function = function_global_handle.borrow();
+        dbg!(&state);
+        let state = v8::String::new(scope, &state).unwrap().into();
+
+        let mut try_catch = &mut v8::TryCatch::new(scope);
+        let global = context.global(try_catch).into();
+        let result = function.call(&mut try_catch, global, &[state]);
+        if result.is_none() {
+            let exception = try_catch.exception().unwrap();
+            let exception_string = exception
+                .to_string(&mut try_catch)
+                .unwrap()
+                .to_rust_string_lossy(&mut try_catch);
+
+            panic!("{}", exception_string);
+        }
+    }
+
+    fn extract_state(&mut self) -> Result<String, DynamicError> {
+        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
+        let context: &v8::Context = self.context.borrow();
+        let function_global_handle = self.get_state.as_ref().expect("function not loaded");
+        let function: &v8::Function = function_global_handle.borrow();
+
+        let mut try_catch = &mut v8::TryCatch::new(scope);
+        let global = context.global(try_catch).into();
+        let result = function.call(&mut try_catch, global, &[]);
+
+        match result {
+            Some(result) => {
+                //result.to_string(scope).unwrap();
+                return Ok(result.to_rust_string_lossy(try_catch));
+            }
+            None => {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                return Err(DynamicError::StateError(exception_string));
+            }
+        }
     }
 
     //This function is for the pattern to bind parameters
@@ -455,6 +549,8 @@ pub enum DynamicError {
     ScriptRunError(String),
     #[error("Produce error")]
     ProduceError,
+    #[error("Could not get state: {0}")]
+    StateError(String),
     #[error("unknown data store error")]
     Unknown,
 }

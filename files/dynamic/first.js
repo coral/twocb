@@ -6,20 +6,32 @@ pixels = new Array(864);
 hue = 0;
 saturation = 1;
 
+state = {
+    speed: 0.001,
+};
+
 // fade default .0007
 var speed = pixelCount / 10;
 var fade = 0.0;
 
 var fadeup = 0.01;
+var hueup = 0.01;
+
+var hue = 0.0;
 
 function beforeRender(delta) {
     if (fade > 1.0) {
         fade = 0.0;
     }
-    fade += fadeup;
+    fade += state.speed;
+
+    if (hue > 1.0) {
+        hue = 0.0;
+    }
+    hue += state.speed;
 }
 
 function render(index) {
     let m = (1 / 864) * index;
-    hsv(index, 0.4, m, fade);
+    hsv(index, hue, m, fade);
 }

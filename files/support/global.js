@@ -1,9 +1,18 @@
 var _mapping = {};
 var _pixelBuffer;
+var state = {};
 var start = new Date().getTime();
 
 function _internalRegister() {
     return JSON.stringify(register());
+}
+
+function _getState() {
+    return JSON.stringify(state);
+}
+
+function _setState(state) {
+    _state = JSON.parse(state);
 }
 
 function _setup(nm) {
