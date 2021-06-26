@@ -2,6 +2,7 @@ use crate::audio;
 use crossbeam_channel;
 use log::error;
 use rustchord;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
 pub struct Colorchord {
@@ -13,7 +14,7 @@ pub struct Colorchord {
     tx: tokio::sync::broadcast::Sender<NoteResult>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoteResult {
     pub notes: Vec<rustchord::Note>,
     pub folded: Vec<f32>,

@@ -6,6 +6,7 @@ use log::debug;
 use log::error;
 use notify::{watcher, RecursiveMode, Watcher};
 use rusty_v8 as v8;
+use serde_v8;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::fs;
@@ -481,6 +482,8 @@ impl DynamicPattern {
         //let name = v8::Number::new(scope, 5.0).into();
 
         //let pixelbuffer: Vec<f64> = vec![0., self.mapping.len()];
+
+        serde_v8::to_v8(scope, frame);
 
         let mut try_catch = &mut v8::TryCatch::new(scope);
         let global = context.global(try_catch).into();

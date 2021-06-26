@@ -361,15 +361,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bincode"
-version = "1.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.55.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1232,12 +1223,6 @@ dependencies = [
  "tokio-util",
  "tracing",
 ]
-
-[[package]]
-name = "half"
-version = "1.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62aca2aba2d62b4a7f5b33f3712cb1b0692779a56fb510499d5c0aa594daeaf3"
 
 [[package]]
 name = "hashbrown"
@@ -2217,21 +2202,22 @@ dependencies = [
 
 [[package]]
 name = "rustchord"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f1074977dfcdce9b0fb045ff63978d0bda80705753b5d1820a10e91da3e83c"
+checksum = "57aab8ea0e092e5106a0bb91c77cbb76719199c76a00b0cbc23eaa757a6b77ae"
 dependencies = [
  "bindgen 0.56.0",
  "cc",
  "palette",
+ "serde",
  "thiserror",
 ]
 
 [[package]]
 name = "rusty_v8"
-version = "0.22.3"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa03778bb7866d8320fc3dd5e6be52929dc10f729ae5e61ea2fbce385a4595d2"
+checksum = "5463232950a37ad7337422f362252ac4ea6db897fc0cb63c8acf0cb4e643898a"
 dependencies = [
  "bitflags",
  "fslock",
@@ -2286,16 +2272,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_cbor"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e18acfa2f90e8b735b2836ab8d538de304cbb6729a7360729ea5a895d15a622"
-dependencies = [
- "half",
- "serde",
-]
-
-[[package]]
 name = "serde_derive"
 version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2326,6 +2302,16 @@ dependencies = [
  "form_urlencoded",
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_v8"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c9f378d38284155eb349b3230914b1151529e4679048430fd4aa3d27160b8f6"
+dependencies = [
+ "rusty_v8",
  "serde",
 ]
 
@@ -2714,7 +2700,6 @@ dependencies = [
  "async-trait",
  "atomic-counter",
  "aubio",
- "bincode",
  "clap 3.0.0-beta.2",
  "cpal",
  "crossbeam",
@@ -2730,9 +2715,9 @@ dependencies = [
  "rustchord",
  "rusty_v8",
  "serde",
- "serde_cbor",
  "serde_derive",
  "serde_json",
+ "serde_v8",
  "sled",
  "strum",
  "strum_macros",

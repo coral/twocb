@@ -1,6 +1,7 @@
 use crate::audio;
 use aubio::{Onset, Tempo, FFT};
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::time::Instant;
 use tokio::sync::broadcast;
 
@@ -16,12 +17,11 @@ pub struct Processing {
     onset_tx: tokio::sync::broadcast::Sender<f32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TempoResult {
     pub bpm: f32,
     pub confidence: f32,
     pub period: f32,
-    pub time: Instant,
 }
 
 impl Processing {
@@ -71,7 +71,6 @@ impl Processing {
             bpm: 120.0,
             confidence: 0.2,
             period: 0.0,
-            time: Instant::now(),
         }
     }
 
@@ -99,7 +98,6 @@ impl Processing {
                             bpm: self.tempo.get_bpm(),
                             confidence: self.tempo.get_confidence(),
                             period: self.tempo.get_period_s(),
-                            time: Instant::now(),
                         };
                         match self.tempo_tx.send(t) {
                             Ok(_) => {}

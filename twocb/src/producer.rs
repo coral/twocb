@@ -1,6 +1,7 @@
 use crate::audio;
 use crate::pixels::Pixel;
 use log::{debug, warn};
+use serde::{Deserialize, Serialize};
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
@@ -103,7 +104,7 @@ impl Producer {
 
     fn sync_tempo(&mut self, t: audio::processing::TempoResult) {
         debug!("[TEMPO] BPM: {0:.2}, Conf: {1:.2}", t.bpm, t.confidence);
-        self.cycletimer = t.time;
+        self.cycletimer = Instant::now();
         self.tempo = 120.0 / (t.bpm as f64);
 
         self.tempo_data = t;
@@ -141,7 +142,7 @@ impl Producer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Frame {
     pub framerate: f64,
     pub index: u64,
