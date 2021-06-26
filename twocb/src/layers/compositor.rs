@@ -28,20 +28,6 @@ impl Compositor {
     }
 
     pub fn add_link(&mut self, link: Link) {
-        // for s in link.steps.iter_mut() {
-        //     let key = &format!("{}_{}", &link.name, s.pattern.name());
-        //     match self.db.subscribe(key).await {
-        //         Ok(v) => match self.db.get_state(key) {
-        //             Some(d) => s.pattern.set_state(d),
-        //             None => {
-        //                 let newstate = &s.pattern.get_state();
-        //                 self.db.write_state(key, &newstate);
-        //             }
-        //         },
-        //         Err(err) => error!("Could not subscribe to key updates: {}", err),
-        //     }
-        // }
-
         let name = link.name.clone();
         let arclink = Arc::new(Mutex::new(link));
         let la = LinkAllocation {
@@ -49,8 +35,6 @@ impl Compositor {
             name,
             link: arclink.clone(),
         };
-
-        //self.lookup.insert(name.clone() + "_" + , v)
 
         self.links.push(la);
     }
@@ -84,21 +68,28 @@ impl Compositor {
             let link = la.link.clone();
             let frame = f.clone();
             handles.push(tokio::spawn(async move {
+                let mut re = link.lock().unwrap();
                 LinkResult {
                     id: cid,
-                    output: link.lock().unwrap().render(frame),
+                    opacity: re.opacity,
+                    output: re.render(frame),
                 }
             }));
         }
 
         let ok = futures::future::join_all(handles).await;
         for r in ok {
-            self.buffer = blending::blend(
-                blending::BlendModes::Add,
-                mem::take(&mut self.buffer),
-                r.unwrap().output,
-                1.0,
-            );
+            match r {
+                Ok(result) => {
+                    self.buffer = blending::blend(
+                        blending::BlendModes::Add,
+                        mem::take(&mut self.buffer),
+                        result.output,
+                        1.0,
+                    );
+                }
+                Err(e) => {}
+            }
         }
 
         return self.buffer.clone();

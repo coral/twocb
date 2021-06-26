@@ -85,6 +85,14 @@ function sin(phase, cycle) {
     return Math.sin(phase * Math.PI * cycle);
 }
 
+function cos(phase, cycle) {
+    return Math.cos(phase * Math.PI * cycle);
+}
+
+function triangle(phase) {
+    return Math.acos(Math.sin(phase)) / 1.570796326794896;
+}
+
 /// Easy shorthands
 
 let max = Math.max;

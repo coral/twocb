@@ -1,6 +1,7 @@
 pub fn add(
     op1: Vec<vecmath::Vector4<f64>>,
     mut op2: Vec<vecmath::Vector4<f64>>,
+    value: f64,
 ) -> Vec<vecmath::Vector4<f64>> {
     for (i, _v) in op1.iter().enumerate() {
         op2[i] = vecmath::vec4_add(op1[i], op2[i]);
@@ -22,14 +23,14 @@ mod tests {
     fn blending_add() {
         let op1 = vec![[1.0, 1.0, 1.0, 0.0]];
         let op2 = vec![[0.5, 0.5, 0.5, 0.0]];
-        let m = add(op1, op2);
+        let m = add(op1, op2, 1.0);
         assert!(m[0][0] == 1.0);
         assert!(m[0][1] == 1.0);
         assert!(m[0][2] == 1.0);
 
         let op1 = vec![[0.0, 0.2, 0.5, 1.0]];
         let op2 = vec![[0.0, 0.5, 0.5, 1.0]];
-        let m = add(op1, op2);
+        let m = add(op1, op2, 1.0);
         assert!(m[0][0] == 0.0);
         assert!(m[0][1] == 0.7);
         assert!(m[0][2] == 1.0);

@@ -125,8 +125,27 @@ impl Controller {
     pub async fn add_link(&mut self, new_link: DeLink) -> Result<(), &str> {
         self.load_link(new_link).await
     }
+
     pub async fn get_links_string(&self) -> String {
         serde_json::to_string(&self.compositor.lock().await.links).unwrap()
+    }
+
+    pub async fn set_opacity(&mut self, link: &str, opacity: f64) {
+        match self
+            .compositor
+            .lock()
+            .await
+            .links
+            .iter()
+            .find(|n| n.link.lock().unwrap().name == link)
+        {
+            Some(v) => {
+                v.link.lock().unwrap().opacity = opacity;
+            }
+            None => {
+                error!("could not find shit");
+            }
+        }
     }
 
     fn instantiate(

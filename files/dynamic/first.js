@@ -31,7 +31,7 @@ function beforeRender(frame, delta) {
     // hue += state.speed;
     fade = sin(frame.phase, 0.5);
     phase = sin(frame.phase, 1);
-    hue = 0.1;
+    hue = 0.2;
 }
 
 function render3D(index, x, y, z) {

@@ -24,7 +24,7 @@ pub fn blend(
 ) -> Vec<vecmath::Vector4<f64>> {
     match mode {
         BlendModes::Add => {
-            return add::add(op1, op2);
+            return add::add(op1, op2, _value);
         }
         BlendModes::Subtract => {
             return subtract::sub(op1, op2);

@@ -65,6 +65,20 @@ async fn delete_layer(
     }
 }
 
+#[derive(Deserialize)]
+struct NewOpacity {
+    key: String,
+    opacity: f64,
+}
+#[post("/opacity")]
+async fn set_opacity(
+    info: web::Json<NewOpacity>,
+    ctrl: web::Data<Arc<Mutex<controller::Controller>>>,
+) -> impl Responder {
+    ctrl.lock().await.set_opacity(&info.key, info.opacity).await;
+    HttpResponse::Ok().body("Yesssss")
+}
+
 #[actix_web::main]
 pub async fn start(
     socket: SocketAddr,
@@ -80,6 +94,7 @@ pub async fn start(
             .service(get_layers)
             .service(add_layer)
             .service(delete_layer)
+            .service(set_opacity)
     })
     .bind(socket)?
     .disable_signals()

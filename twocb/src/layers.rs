@@ -29,12 +29,14 @@ unsafe impl Send for LinkAllocation {}
 #[derive(Debug)]
 struct LinkResult {
     id: usize,
+    opacity: f64,
     output: Vec<vecmath::Vector4<f64>>,
 }
 
 #[derive(Serialize)]
 pub struct Link {
-    name: String,
+    pub name: String,
+    pub opacity: f64,
     pub steps: Vec<Step>,
 
     #[serde(skip_serializing)]
@@ -48,6 +50,7 @@ impl Link {
         Link {
             name,
             steps,
+            opacity: 1.0,
             output: vec![[0.0; 4]; 700],
         }
     }
