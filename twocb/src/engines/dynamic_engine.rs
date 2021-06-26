@@ -93,7 +93,7 @@ fn shutdown_runtime() {
 
 struct DynamicHolder {
     frame_channel: mpsc::Sender<Arc<producer::Frame>>,
-    result_channel: mpsc::Receiver<Vec<vecmath::Vector4<f64>>>,
+    result_channel: mpsc::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
     cancel_channel: mpsc::Sender<bool>,
 
     watcher: notify::FsEventWatcher,
@@ -113,7 +113,12 @@ impl engines::pattern::Pattern for DynamicHolder {
         }
 
         match self.result_channel.recv() {
-            Ok(v) => v,
+            Ok(v) => match v {
+                Ok(output) => output,
+                Err(e) => {
+                    vec![[1.0, 0.0, 1.0, 1.0]; 864]
+                }
+            },
             Err(e) => {
                 //error!("{}", e);
                 vec![[1.0, 0.0, 1.0, 1.0]; 864]
@@ -197,16 +202,40 @@ impl DynamicPattern {
                 render: None,
             };
 
-            d.load(&global, &code);
+            match d.load(&global, &code) {
+                Ok(v) => {}
+                Err(e) => {
+                    error!("{}", e);
+                    match reload_rx.recv() {
+                        Ok(_) => continue,
+                        _ => {}
+                    }
+                }
+            }
             d.setup(mapping.clone());
 
             loop {
                 match frame_rx.recv() {
-                    Ok(frame) => match result_tx.send(d.dynamic_process(frame)) {
+                    Ok(frame) => match d.dynamic_process(frame) {
+                        Ok(output) => match result_tx.send(Ok(output)) {
+                            Err(e) => {
+                                error!("Dynamic pattern send error: {}", e);
+                            }
+                            _ => {}
+                        },
                         Err(e) => {
-                            error!("Dynamic pattern produce error: {}", e);
+                            error!("Dynamic error: {}", e);
+                            match result_tx.send(Err(DynamicError::ProduceError)) {
+                                Err(e) => {
+                                    error!("Dynamic pattern send error: {}", e);
+                                }
+                                _ => {}
+                            }
+                            match reload_rx.recv() {
+                                Ok(_) => break,
+                                _ => {}
+                            }
                         }
-                        _ => {}
                     },
                     Err(e) => {
                         error!("Dynamic pattern recieve error: {}", e);
@@ -246,24 +275,18 @@ impl DynamicPattern {
     fn load(&mut self, global: &str, code: &str) -> Result<(), DynamicError> {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
-        //load global
-        {
-            let code = v8::String::new(scope, global).unwrap();
-            let script = v8::Script::compile(scope, code, None).unwrap();
-            script.run(scope).unwrap();
+
+        //Load global
+        match DynamicPattern::execute(scope, global) {
+            Err(e) => return Err(e),
+            _ => {}
         }
 
-        let code = v8::String::new(scope, code).unwrap();
-        let script = match v8::Script::compile(scope, code, None) {
-            Some(script) => script,
-            None => {
-                return Err(DynamicError::CompileError(
-                    "I haven't figured out how to extract compilation errors yet".to_string(),
-                ))
-            }
-        };
-        //Execute script to load functions into memory
-        script.run(scope).unwrap();
+        //Load code
+        match DynamicPattern::execute(scope, code) {
+            Err(e) => return Err(e),
+            _ => {}
+        }
 
         //Bind function handlers
         self.setup = DynamicPattern::bind_function(scope, context, "_setup");
@@ -273,7 +296,7 @@ impl DynamicPattern {
         Ok(())
     }
 
-    fn execute(&mut self, scope: &mut v8::HandleScope, code: &str) -> Result<(), DynamicError> {
+    fn execute(scope: &mut v8::HandleScope, code: &str) -> Result<(), DynamicError> {
         let code = v8::String::new(scope, code).unwrap();
         let script = match v8::Script::compile(scope, code, None) {
             Some(script) => script,
@@ -284,7 +307,14 @@ impl DynamicPattern {
             }
         };
         //Execute script to load functions into memory
-        script.run(scope).unwrap();
+        match script.run(scope) {
+            Some(v) => {}
+            None => {
+                return Err(DynamicError::ScriptRunError(
+                    "I haven't figured out how to extract run errors yet".to_string(),
+                ))
+            }
+        }
 
         Ok(())
     }
@@ -339,7 +369,10 @@ impl DynamicPattern {
         }
     }
 
-    fn dynamic_process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
+    fn dynamic_process(
+        &mut self,
+        frame: Arc<producer::Frame>,
+    ) -> Result<Vec<vecmath::Vector4<f64>>, DynamicError> {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.render.as_ref().expect("function not loaded");
@@ -363,7 +396,7 @@ impl DynamicPattern {
                 .unwrap()
                 .to_rust_string_lossy(&mut try_catch);
 
-            error!("{}", exception_string);
+            return Err(DynamicError::ScriptRunError(exception_string));
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
@@ -395,7 +428,7 @@ impl DynamicPattern {
         // return output;
         //vec![[1.0, 0.0, 1.0, 1.0]; 864]
 
-        v.chunks(3).map(|s| [s[0], s[1], s[2], 1.0]).collect()
+        Ok(v.chunks(3).map(|s| [s[0], s[1], s[2], 1.0]).collect())
     }
 
     fn bind_function(
@@ -418,6 +451,10 @@ impl DynamicPattern {
 pub enum DynamicError {
     #[error("Compile error: {0}")]
     CompileError(String),
+    #[error("Script run error: {0}")]
+    ScriptRunError(String),
+    #[error("Produce error")]
+    ProduceError,
     #[error("unknown data store error")]
     Unknown,
 }
