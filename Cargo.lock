@@ -2736,6 +2736,7 @@ dependencies = [
  "sled",
  "strum",
  "strum_macros",
+ "thiserror",
  "tokio",
  "vecmath",
  "zeroconf",

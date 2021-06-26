@@ -12,8 +12,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Arc;
-use std::thread;
-use std::thread::JoinHandle;
+use thiserror::Error;
 use tokio::sync::oneshot;
 use tokio::task;
 
@@ -158,10 +157,12 @@ impl DynamicPattern {
         let (cancel_tx, cancel_rx) = mpsc::channel();
         let (reload_tx, reload_rx) = mpsc::channel();
 
-        let mut watcher = watcher(reload_tx, Duration::from_millis(100)).unwrap();
-        let mp = fs::canonicalize(codepath).unwrap();
-        dbg!(&mp);
-        match watcher.watch(mp, RecursiveMode::Recursive) {
+        let mut watcher = watcher(reload_tx, Duration::from_millis(50)).unwrap();
+
+        match watcher.watch(
+            fs::canonicalize(codepath).unwrap(),
+            RecursiveMode::Recursive,
+        ) {
             Err(e) => {
                 error!(
                     "could not watch dyn pattern for {}, {}",
@@ -242,7 +243,7 @@ impl DynamicPattern {
         });
     }
 
-    fn load(&mut self, global: &str, code: &str) {
+    fn load(&mut self, global: &str, code: &str) -> Result<(), DynamicError> {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
         //load global
@@ -253,7 +254,14 @@ impl DynamicPattern {
         }
 
         let code = v8::String::new(scope, code).unwrap();
-        let script = v8::Script::compile(scope, code, None).unwrap();
+        let script = match v8::Script::compile(scope, code, None) {
+            Some(script) => script,
+            None => {
+                return Err(DynamicError::CompileError(
+                    "I haven't figured out how to extract compilation errors yet".to_string(),
+                ))
+            }
+        };
         //Execute script to load functions into memory
         script.run(scope).unwrap();
 
@@ -261,6 +269,24 @@ impl DynamicPattern {
         self.setup = DynamicPattern::bind_function(scope, context, "_setup");
         self.register = DynamicPattern::bind_function(scope, context, "_internalRegister");
         self.render = DynamicPattern::bind_function(scope, context, "_internalRender");
+
+        Ok(())
+    }
+
+    fn execute(&mut self, scope: &mut v8::HandleScope, code: &str) -> Result<(), DynamicError> {
+        let code = v8::String::new(scope, code).unwrap();
+        let script = match v8::Script::compile(scope, code, None) {
+            Some(script) => script,
+            None => {
+                return Err(DynamicError::CompileError(
+                    "I haven't figured out how to extract compilation errors yet".to_string(),
+                ))
+            }
+        };
+        //Execute script to load functions into memory
+        script.run(scope).unwrap();
+
+        Ok(())
     }
 
     //This function is for the pattern to bind parameters
@@ -337,7 +363,7 @@ impl DynamicPattern {
                 .unwrap()
                 .to_rust_string_lossy(&mut try_catch);
 
-            panic!("{}", exception_string);
+            error!("{}", exception_string);
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
@@ -386,4 +412,12 @@ impl DynamicPattern {
         let function_global_handle = v8::Global::new(scope, function);
         Some(function_global_handle)
     }
+}
+
+#[derive(Error, Debug)]
+pub enum DynamicError {
+    #[error("Compile error: {0}")]
+    CompileError(String),
+    #[error("unknown data store error")]
+    Unknown,
 }

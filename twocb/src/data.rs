@@ -99,6 +99,4 @@ impl DataLayer {
     pub fn write_layer(&mut self, key: &str, value: &[u8]) {
         self.links.insert(key, value);
     }
-
-
 }
