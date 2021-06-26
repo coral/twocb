@@ -153,6 +153,7 @@ pub struct Frame {
     pub colorchord: audio::colorchord::NoteResult,
     pub tempo: audio::TempoResult,
 
+    #[serde(skip)]
     pub mapping: Vec<Pixel>,
 }
 

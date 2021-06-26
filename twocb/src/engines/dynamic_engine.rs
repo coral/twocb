@@ -2,8 +2,7 @@ use crate::engines;
 use crate::pixels;
 use crate::producer;
 use glob::glob;
-use log::debug;
-use log::error;
+use log::{debug, error, info};
 use notify::{watcher, RecursiveMode, Watcher};
 use rusty_v8 as v8;
 use serde_v8;
@@ -482,12 +481,16 @@ impl DynamicPattern {
         //let name = v8::Number::new(scope, 5.0).into();
 
         //let pixelbuffer: Vec<f64> = vec![0., self.mapping.len()];
-
-        serde_v8::to_v8(scope, frame);
+        let res = match serde_v8::to_v8(scope, frame) {
+            Ok(res) => res,
+            Err(e) => {
+                return Err(DynamicError::SerializeError(e.to_string()));
+            }
+        };
 
         let mut try_catch = &mut v8::TryCatch::new(scope);
         let global = context.global(try_catch).into();
-        let result = function.call(&mut try_catch, global, &[]);
+        let result = function.call(&mut try_catch, global, &[res]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();
             let exception_string = exception
@@ -556,6 +559,8 @@ pub enum DynamicError {
     ProduceError,
     #[error("Could not get state: {0}")]
     StateError(String),
+    #[error("Could not serialize Frame: {0}")]
+    SerializeError(String),
     #[error("unknown data store error")]
     Unknown,
 }

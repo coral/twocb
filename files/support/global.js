@@ -21,16 +21,22 @@ function _setup(nm) {
     _pixelBuffer = new Float64Array(_mapping.length * 3);
 }
 
-function _internalRender() {
+function _internalRender(frame) {
     if (typeof beforeRender === "function") {
         let delta = new Date().getTime();
-        beforeRender(start - delta);
+        beforeRender(frame, start - delta);
         start = delta;
     }
 
-    _mapping.forEach((m) => {
-        render(m.I);
-    });
+    if (typeof render3D === "function") {
+        _mapping.forEach((m) => {
+            render3D(m.I, m.O[0], m.O[1], m.O[2]);
+        });
+    } else {
+        _mapping.forEach((m) => {
+            render(m.I);
+        });
+    }
 
     return _pixelBuffer;
 }
@@ -72,6 +78,11 @@ function hsv(index, h, s, v) {
     _pixelBuffer[index * 3] = r;
     _pixelBuffer[index * 3 + 1] = g;
     _pixelBuffer[index * 3 + 2] = b;
+}
+
+/// Frame Functions
+function sin(phase, cycle) {
+    return Math.sin(phase * Math.PI * cycle);
 }
 
 /// Easy shorthands

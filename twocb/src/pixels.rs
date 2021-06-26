@@ -6,6 +6,7 @@ use std::path::Path;
 use vecmath;
 
 pub struct Mapping {
+    #[allow(dead_code)]
     pixels: Vec<Pixel>,
 }
 

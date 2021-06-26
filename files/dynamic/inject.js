@@ -4,7 +4,7 @@ state = {
     value: 0.0,
 };
 
-function beforeRender(delta) {}
+function beforeRender(frame, delta) {}
 
 function render(index) {
     hsv(index, state.hue, state.saturation, state.value);
