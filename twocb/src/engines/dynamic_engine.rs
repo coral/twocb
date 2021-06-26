@@ -1,10 +1,10 @@
 use crate::engines;
 use crate::pixels;
 use crate::producer;
-use async_trait::async_trait;
 use glob::glob;
 use log::debug;
 use log::error;
+use notify::{watcher, RecursiveMode, Watcher};
 use rusty_v8 as v8;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
@@ -17,6 +17,8 @@ use std::thread::JoinHandle;
 use tokio::sync::oneshot;
 use tokio::task;
 
+use std::time::Duration;
+
 pub struct DynamicEngine {
     pattern_folder: String,
     global_scope: String,
@@ -26,7 +28,6 @@ pub struct DynamicEngine {
 impl engines::Engine for DynamicEngine {
     fn bootstrap(&mut self) -> anyhow::Result<()> {
         //self.init_patterns();
-        self.watch();
         initalize_runtime();
         Ok(())
     }
@@ -78,8 +79,6 @@ impl DynamicEngine {
             mapping,
         };
     }
-
-    fn watch(&mut self) {}
 }
 
 fn initalize_runtime() {
@@ -97,6 +96,8 @@ struct DynamicHolder {
     frame_channel: mpsc::Sender<Arc<producer::Frame>>,
     result_channel: mpsc::Receiver<Vec<vecmath::Vector4<f64>>>,
     cancel_channel: mpsc::Sender<bool>,
+
+    watcher: notify::FsEventWatcher,
 }
 
 impl engines::pattern::Pattern for DynamicHolder {
@@ -128,7 +129,6 @@ impl engines::pattern::Pattern for DynamicHolder {
 }
 
 struct DynamicPattern {
-    path: std::path::PathBuf,
     //tp: tokio::runtime::Runtime,
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
@@ -156,8 +156,30 @@ impl DynamicPattern {
         let (frame_tx, mut frame_rx) = mpsc::channel();
         let (result_tx, result_rx) = mpsc::channel();
         let (cancel_tx, cancel_rx) = mpsc::channel();
+        let (reload_tx, reload_rx) = mpsc::channel();
 
-        std::thread::spawn(move || {
+        let mut watcher = watcher(reload_tx, Duration::from_millis(100)).unwrap();
+        let mp = fs::canonicalize(codepath).unwrap();
+        dbg!(&mp);
+        match watcher.watch(mp, RecursiveMode::Recursive) {
+            Err(e) => {
+                error!(
+                    "could not watch dyn pattern for {}, {}",
+                    codepath.to_str().unwrap(),
+                    e
+                );
+            }
+            _ => {}
+        }
+
+        let c = codepath.to_path_buf();
+
+        std::thread::spawn(move || loop {
+            let code = match fs::read_to_string(c.clone()) {
+                Ok(v) => v,
+                _ => "".to_string(),
+            };
+
             let mut isolate = v8::Isolate::new(v8::CreateParams::default());
             let global_context;
             {
@@ -167,8 +189,6 @@ impl DynamicPattern {
             }
 
             let mut d = DynamicPattern {
-                path,
-
                 isolate: isolate,
                 context: global_context,
                 setup: None,
@@ -177,7 +197,7 @@ impl DynamicPattern {
             };
 
             d.load(&global, &code);
-            d.setup(mapping);
+            d.setup(mapping.clone());
 
             loop {
                 match frame_rx.recv() {
@@ -198,6 +218,18 @@ impl DynamicPattern {
                     }
                     _ => {}
                 }
+
+                match reload_rx.try_recv() {
+                    Ok(event) => {
+                        match event {
+                            notify::DebouncedEvent::Write(_) => {
+                                break;
+                            }
+                            _ => {}
+                        };
+                    }
+                    _ => {}
+                }
             }
         });
 
@@ -205,6 +237,8 @@ impl DynamicPattern {
             frame_channel: frame_tx,
             result_channel: result_rx,
             cancel_channel: cancel_tx,
+
+            watcher: watcher,
         });
     }
 
