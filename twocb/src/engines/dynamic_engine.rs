@@ -502,35 +502,25 @@ impl DynamicPattern {
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
-        // let backing = res.buffer(try_catch).unwrap().get_backing_store();
-        // let slice: &[f64] = unsafe {
-        //     let ptr = backing.data().offset(res.byte_offset() as isize);
-        //     let len = res.byte_length();
-        //     std::slice::from_raw_parts(ptr as *const f64, len / std::mem::size_of::<f64>())
-        // };
-
-        // return slice;
-        // dbg!(slice);
-        // let mut m = vec![0; res.byte_length()];
-
-        let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
-        let _copied = unsafe {
-            let ptr = v.as_mut_ptr();
-            let slice = std::slice::from_raw_parts_mut(
-                ptr as *mut u8,
-                v.len() * std::mem::size_of::<f64>(),
-            );
-            res.copy_contents(slice)
+        let backing = res.buffer(try_catch).unwrap().get_backing_store();
+        let slice: &[f64] = unsafe {
+            let ptr = backing.data().offset(res.byte_offset() as isize);
+            let len = res.byte_length();
+            std::slice::from_raw_parts(ptr as *const f64, len / std::mem::size_of::<f64>())
         };
 
-        // let mut output = Vec::new();
-        // for i in v.chunks(3) {
-        //     output.push([i[0], i[1], i[2], 1.0]);
-        // }
-        // return output;
-        //vec![[1.0, 0.0, 1.0, 1.0]; 864]
+        //The safe one ?
+        // let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
+        // let _copied = unsafe {
+        //     let ptr = v.as_mut_ptr();
+        //     let slice = std::slice::from_raw_parts_mut(
+        //         ptr as *mut u8,
+        //         v.len() * std::mem::size_of::<f64>(),
+        //     );
+        //     res.copy_contents(slice)
+        // };
 
-        Ok(v.chunks(4).map(|s| [s[0], s[1], s[2], s[3]]).collect())
+        Ok(slice.chunks(4).map(|s| [s[0], s[1], s[2], s[3]]).collect())
     }
 
     fn bind_function(
