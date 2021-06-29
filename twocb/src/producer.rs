@@ -105,7 +105,7 @@ impl Producer {
     fn sync_tempo(&mut self, t: audio::processing::TempoResult) {
         debug!("[TEMPO] BPM: {0:.2}, Conf: {1:.2}", t.bpm, t.confidence);
         self.cycletimer = Instant::now();
-        self.tempo = 120.0 / (t.bpm as f64);
+        self.tempo = 60.0 / (t.bpm as f64);
 
         self.tempo_data = t;
     }
