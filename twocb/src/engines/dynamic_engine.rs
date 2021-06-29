@@ -415,32 +415,6 @@ impl DynamicPattern {
         }
     }
 
-    //This function is for the pattern to bind parameters
-    //it's kinda obvious i haven't really ported it yet.
-    fn register(&mut self) {
-        //Register functions
-        // let scope =
-        //     &mut v8::HandleScope::with_context(self.isolate.as_mut().unwrap(), &self.context);
-        // let context: &v8::Context = self.context.borrow();
-        // let function_global_handle = self.register.as_ref().expect("function not loaded");
-        // let function: &v8::Function = function_global_handle.borrow();
-
-        // let mut try_catch = &mut v8::TryCatch::new(scope);
-        // let global = context.global(try_catch).into();
-        // let result = function.call(&mut try_catch, global, &[]);
-        // if result.is_none() {
-        //     let exception = try_catch.exception().unwrap();
-        //     let exception_string = exception
-        //         .to_string(&mut try_catch)
-        //         .unwrap()
-        //         .to_rust_string_lossy(&mut try_catch);
-
-        //     panic!("PENIS : {}", exception_string);
-        // }
-        // let m = result.unwrap().to_rust_string_lossy(try_catch);
-        // dbg!(m);
-    }
-
     fn setup(&mut self, mapping: Vec<pixels::Pixel>) {
         let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
         let context: &v8::Context = self.context.borrow();
@@ -474,13 +448,6 @@ impl DynamicPattern {
         let function_global_handle = self.render.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
 
-        // let buf = v8::ArrayBuffer::new_backing_store_from_boxed_slice(baked.into_boxed_slice())
-
-        //        let mapping = v8::Float64Array::new(scope, baked, 0, 0);
-
-        //let name = v8::Number::new(scope, 5.0).into();
-
-        //let pixelbuffer: Vec<f64> = vec![0., self.mapping.len()];
         let res = match serde_v8::to_v8(scope, frame) {
             Ok(res) => res,
             Err(e) => {
