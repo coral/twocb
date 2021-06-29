@@ -84,8 +84,8 @@ impl Compositor {
                     self.buffer = blending::blend(
                         blending::BlendModes::Add,
                         mem::take(&mut self.buffer),
-                        result.output,
-                        1.0,
+                        blending::scale(result.output, result.opacity),
+                        0.1,
                     );
                 }
                 Err(e) => {}

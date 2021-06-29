@@ -18,7 +18,7 @@ function _setState(newstate) {
 function _setup(nm) {
     _mapping = JSON.parse(nm);
 
-    _pixelBuffer = new Float64Array(_mapping.length * 3);
+    _pixelBuffer = new Float64Array(_mapping.length * 4);
 }
 
 function _internalRender(frame) {
@@ -42,9 +42,17 @@ function _internalRender(frame) {
 }
 
 function rgb(i, r, g, b) {
-    _pixelBuffer[i * 3] = r;
-    _pixelBuffer[i * 3 + 1] = g;
-    _pixelBuffer[i * 3 + 2] = b;
+    _pixelBuffer[index * 4] = r;
+    _pixelBuffer[index * 4 + 1] = g;
+    _pixelBuffer[index * 4 + 2] = b;
+    _pixelBuffer[index * 4 + 3] = 1.0;
+}
+
+function rgba(i, r, g, b, a) {
+    _pixelBuffer[index * 4] = r;
+    _pixelBuffer[index * 4 + 1] = g;
+    _pixelBuffer[index * 4 + 2] = b;
+    _pixelBuffer[index * 4 + 3] = a;
 }
 
 function hsv(index, h, s, v) {
@@ -75,9 +83,10 @@ function hsv(index, h, s, v) {
             break;
     }
 
-    _pixelBuffer[index * 3] = r;
-    _pixelBuffer[index * 3 + 1] = g;
-    _pixelBuffer[index * 3 + 2] = b;
+    _pixelBuffer[index * 4] = r;
+    _pixelBuffer[index * 4 + 1] = g;
+    _pixelBuffer[index * 4 + 2] = b;
+    _pixelBuffer[index * 4 + 3] = 1.0;
 }
 
 /// Frame Functions

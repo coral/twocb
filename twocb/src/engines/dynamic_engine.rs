@@ -530,7 +530,7 @@ impl DynamicPattern {
         // return output;
         //vec![[1.0, 0.0, 1.0, 1.0]; 864]
 
-        Ok(v.chunks(3).map(|s| [s[0], s[1], s[2], 1.0]).collect())
+        Ok(v.chunks(4).map(|s| [s[0], s[1], s[2], s[3]]).collect())
     }
 
     fn bind_function(
