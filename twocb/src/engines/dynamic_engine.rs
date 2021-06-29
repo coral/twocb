@@ -1,6 +1,7 @@
 use crate::engines;
 use crate::pixels;
 use crate::producer;
+use crossbeam_channel;
 use glob::glob;
 use log::{debug, error, info};
 use notify::{watcher, RecursiveMode, Watcher};
@@ -9,7 +10,6 @@ use serde_v8;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::fs;
-use std::sync::mpsc;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -91,13 +91,13 @@ fn shutdown_runtime() {
 struct DynamicHolder {
     patternname: String,
 
-    frame_channel: mpsc::Sender<Arc<producer::Frame>>,
-    result_channel: mpsc::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
-    cancel_channel: mpsc::Sender<bool>,
+    frame_channel: crossbeam_channel::Sender<Arc<producer::Frame>>,
+    result_channel: crossbeam_channel::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
+    cancel_channel: crossbeam_channel::Sender<bool>,
 
-    setstate_channel: mpsc::Sender<String>,
-    getstate_channel: mpsc::Receiver<Result<String, DynamicError>>,
-    reqstate_channel: mpsc::Sender<bool>,
+    setstate_channel: crossbeam_channel::Sender<String>,
+    getstate_channel: crossbeam_channel::Receiver<Result<String, DynamicError>>,
+    reqstate_channel: crossbeam_channel::Sender<bool>,
 
     watcher: notify::FsEventWatcher,
 }
@@ -184,14 +184,14 @@ impl DynamicPattern {
             Err(e) => return Err(e),
         };
 
-        let (frame_tx, mut frame_rx) = mpsc::channel();
-        let (result_tx, result_rx) = mpsc::channel();
-        let (cancel_tx, cancel_rx) = mpsc::channel();
-        let (reload_tx, reload_rx) = mpsc::channel();
+        let (frame_tx, mut frame_rx) = crossbeam_channel::unbounded();
+        let (result_tx, result_rx) = crossbeam_channel::unbounded();
+        let (cancel_tx, cancel_rx) = crossbeam_channel::unbounded();
+        let (reload_tx, reload_rx) = crossbeam_channel::unbounded();
 
-        let (setstate_tx, setstate_rx) = mpsc::channel();
-        let (getstate_tx, getstate_rx) = mpsc::channel();
-        let (reqstate_tx, reqstate_rx) = mpsc::channel();
+        let (setstate_tx, setstate_rx) = crossbeam_channel::unbounded();
+        let (getstate_tx, getstate_rx) = crossbeam_channel::unbounded();
+        let (reqstate_tx, reqstate_rx) = crossbeam_channel::unbounded();
 
         let mut watcher = watcher(reload_tx, Duration::from_millis(50)).unwrap();
 
