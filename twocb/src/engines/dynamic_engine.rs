@@ -9,12 +9,9 @@ use serde_v8;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::oneshot;
-use tokio::task;
 
 use std::time::Duration;
 
@@ -84,7 +81,7 @@ fn initalize_runtime() {
     let platform = v8::new_default_platform().unwrap();
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();
-    debug!("Initalized the V8 platform.");
+    info!("Initalized the V8 platform.");
 }
 
 fn shutdown_runtime() {
@@ -162,7 +159,6 @@ impl engines::pattern::Pattern for DynamicHolder {
 }
 
 struct DynamicPattern {
-    //tp: tokio::runtime::Runtime,
     isolate: v8::OwnedIsolate,
     context: v8::Global<v8::Context>,
     setup: Option<v8::Global<v8::Function>>,
@@ -372,6 +368,7 @@ impl DynamicPattern {
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.set_state.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
+        debug!("Injecting state: {}", state);
         let state = v8::String::new(scope, &state).unwrap().into();
 
         let mut try_catch = &mut v8::TryCatch::new(scope);
@@ -518,6 +515,4 @@ pub enum DynamicError {
     StateError(String),
     #[error("Could not serialize Frame: {0}")]
     SerializeError(String),
-    #[error("unknown data store error")]
-    Unknown,
 }

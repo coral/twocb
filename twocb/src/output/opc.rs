@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
 use zeroconf::prelude::*;
-use zeroconf::{MdnsService, ServiceRegistration, TxtRecord};
+use zeroconf::{MdnsService, TxtRecord};
 
 const SET_PIXEL_COLORS: u8 = 0x00;
 const BROADCAST_CHANNEL: u8 = 0x00;
@@ -61,7 +61,7 @@ pub struct OPCDiscovery {}
 
 impl OPCDiscovery {
     fn advertise() {
-        let mut service = MdnsService::new("_opc._tcp", 3030);
-        let mut txt_record = TxtRecord::new();
+        let _service = MdnsService::new("_opc._tcp", 3030);
+        let _txt_record = TxtRecord::new();
     }
 }

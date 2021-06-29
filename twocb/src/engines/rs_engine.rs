@@ -1,9 +1,7 @@
 use crate::engines;
-use crate::pixels::Pixel;
 
 use log::info;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 mod foldeddemo;
 mod strobe;

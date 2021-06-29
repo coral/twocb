@@ -1,8 +1,8 @@
 use crate::controller;
 use crate::data;
 use crate::layers;
-use actix_web::{delete, get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use serde::{Deserialize, Serialize};
+use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
+use serde::Deserialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;

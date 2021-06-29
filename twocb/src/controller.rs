@@ -1,11 +1,11 @@
 use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
-use crate::layers::{compositor, DeLink, DeStep, EngineType, Link, Step};
+use crate::layers::{compositor, DeLink, EngineType, Link, Step};
 use crate::pixels;
 
 use log::error;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
 pub struct Controller {
     rse: RSEngine,
     dse: DynamicEngine,
@@ -80,7 +80,7 @@ impl Controller {
         let store = serde_json::to_vec(&link).unwrap();
         let mut steps = Vec::new();
         for step in link.steps {
-            let (mut tx, mut rx) = mpsc::channel(5);
+            let (tx, rx) = mpsc::channel(5);
             let pt = match self.instantiate(&step.pattern, step.engine_type) {
                 Ok(pattern) => pattern,
                 Err(e) => {
@@ -94,7 +94,6 @@ impl Controller {
 
                 drx: rx,
             };
-            dbg!(&newstep);
 
             let key = &format!("{}_{}", &link.name, &step.pattern);
             match self.data.get_state(key) {

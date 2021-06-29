@@ -9,21 +9,16 @@ pub struct Input {
     stream_settings: audio::StreamSetting,
     buffer: RingBuffer<f32>,
     stream: Option<cpal::Stream>,
-    // ds: crossbeam_channel::Sender<Vec<f32>>,
-    // dr: crossbeam_channel::Receiver<Vec<f32>>
 }
 
 impl Input {
     pub fn new(s: audio::StreamSetting) -> Input {
-        //let (s, r) = crossbeam_channel::unbounded();
         Input {
             stream_settings: s,
             buffer: RingBuffer::<f32>::new(
                 ((((20.0 / 1_000.0) * s.sample_rate as f32) * s.channels as f32) * 2.0) as usize,
             ),
             stream: None,
-            // ds: s,
-            //dr: r,
         }
     }
 
@@ -78,11 +73,5 @@ impl Input {
         self.stream = Some(stream);
 
         return dr;
-    }
-
-    pub fn process(&mut self, input: &[f32], _inp: &cpal::InputCallbackInfo) {
-        for n in input.iter() {
-            println!("{}", n)
-        }
     }
 }

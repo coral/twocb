@@ -3,11 +3,12 @@ use crate::layers::{Link, LinkAllocation, LinkResult};
 use crate::producer;
 
 use atomic_counter::AtomicCounter;
+use log::error;
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
+#[allow(dead_code)]
 pub struct Compositor {
     pub links: Vec<LinkAllocation>,
     lookup: HashMap<String, Arc<Mutex<Link>>>,
@@ -88,7 +89,9 @@ impl Compositor {
                         0.1,
                     );
                 }
-                Err(e) => {}
+                Err(e) => {
+                    error!("'JoinError' in the compositor rendering function?? {}", e);
+                }
             }
         }
 

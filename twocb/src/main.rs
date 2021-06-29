@@ -6,10 +6,8 @@ mod data;
 mod engines;
 mod layers;
 mod output;
-mod patterns;
 mod pixels;
 mod producer;
-use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
@@ -58,7 +56,7 @@ pub async fn bootstrap() {
         }
     };
 
-    let mut db = data::DataLayer::new(&cfg.clone().database).unwrap();
+    let db = data::DataLayer::new(&cfg.clone().database).unwrap();
 
     let map = match pixels::Mapping::load_from_file(
         &std::path::Path::new("files/mappings/").join(&cfg.mapping),
@@ -69,7 +67,7 @@ pub async fn bootstrap() {
         }
     };
 
-    let mut compositor = Arc::new(tokio::sync::Mutex::new(
+    let compositor = Arc::new(tokio::sync::Mutex::new(
         layers::compositor::Compositor::new(),
     ));
     let mut ctrl = controller::Controller::new(db.clone(), compositor.clone(), map.clone());
@@ -96,15 +94,13 @@ pub async fn bootstrap() {
     });
 
     let prc_cfg = cfg.clone();
-    let run_db = db.clone();
     let cmps = compositor.clone();
 
-    run(prc_cfg, run_db, cmps, map.clone()).await;
+    run(prc_cfg, cmps, map.clone()).await;
 }
 
 pub async fn run(
     cfg: Arc<config::Config>,
-    db: data::DataLayer,
     compositor: Arc<Mutex<layers::compositor::Compositor>>,
     mapping: Vec<pixels::Pixel>,
 ) {

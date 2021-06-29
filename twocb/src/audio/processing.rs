@@ -2,9 +2,9 @@ use crate::audio;
 use aubio::{Onset, Tempo, FFT};
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::time::Instant;
 use tokio::sync::broadcast;
 
+#[allow(dead_code)]
 pub struct Processing {
     dr: crossbeam_channel::Receiver<Vec<f32>>,
     stream_setting: audio::StreamSetting,

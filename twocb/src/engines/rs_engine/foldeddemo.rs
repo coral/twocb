@@ -1,10 +1,7 @@
 use crate::engines::pattern;
-use crate::pixels::Pixel;
 use crate::producer;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::mpsc;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
     factor: f64,
@@ -13,7 +10,6 @@ pub struct FoldedDemo {
     s: Settings,
 }
 
-#[async_trait]
 impl pattern::Pattern for FoldedDemo {
     fn name(&self) -> String {
         return "foldeddemo".to_string();

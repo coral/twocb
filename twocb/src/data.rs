@@ -33,7 +33,7 @@ impl DataLayer {
     }
 
     pub async fn subscribe(&mut self, key: &str) -> Result<mpsc::Receiver<Vec<u8>>, &'static str> {
-        let (tx, mut rx) = mpsc::channel(10);
+        let (tx, rx) = mpsc::channel(10);
         match self.subscribed_keys.insert(key.to_string(), tx) {
             None => Ok(rx),
             Some(_) => Err("key already exists"),
@@ -79,8 +79,10 @@ impl DataLayer {
                 return Err(e.to_string());
             }
         };
-        self.state.insert(key, value);
-        Ok(())
+        match self.state.insert(key, value) {
+            Ok(_) => return Ok(()),
+            Err(e) => return Err(e.to_string()),
+        }
     }
 
     //pub fn get_layers() -> Vec<u8> {}
@@ -104,6 +106,8 @@ impl DataLayer {
     }
 
     pub fn write_layer(&mut self, key: &str, value: &[u8]) {
-        self.links.insert(key, value);
+        match self.links.insert(key, value) {
+            _ => {}
+        }
     }
 }
