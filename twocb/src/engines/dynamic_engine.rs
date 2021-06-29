@@ -1,10 +1,10 @@
 use crate::engines;
 use crate::pixels;
 use crate::producer;
-use crossbeam_channel;
+use crossbeam_channel::select;
 use glob::glob;
 use log::{debug, error, info};
-use notify::{watcher, RecursiveMode, Watcher};
+use notify::{EventKind, Watcher};
 use rusty_v8 as v8;
 use serde_v8;
 use std::borrow::Borrow;
@@ -12,8 +12,6 @@ use std::convert::TryFrom;
 use std::fs;
 use std::sync::Arc;
 use thiserror::Error;
-
-use std::time::Duration;
 
 pub struct DynamicEngine {
     pattern_folder: String,
@@ -23,7 +21,6 @@ pub struct DynamicEngine {
 
 impl engines::Engine for DynamicEngine {
     fn bootstrap(&mut self) -> anyhow::Result<()> {
-        //self.init_patterns();
         initalize_runtime();
         Ok(())
     }
@@ -99,7 +96,7 @@ struct DynamicHolder {
     getstate_channel: crossbeam_channel::Receiver<Result<String, DynamicError>>,
     reqstate_channel: crossbeam_channel::Sender<bool>,
 
-    watcher: notify::FsEventWatcher,
+    _watcher: notify::FsEventWatcher,
 }
 
 impl engines::pattern::Pattern for DynamicHolder {
@@ -184,7 +181,7 @@ impl DynamicPattern {
             Err(e) => return Err(e),
         };
 
-        let (frame_tx, mut frame_rx) = crossbeam_channel::unbounded();
+        let (frame_tx, frame_rx) = crossbeam_channel::unbounded();
         let (result_tx, result_rx) = crossbeam_channel::unbounded();
         let (cancel_tx, cancel_rx) = crossbeam_channel::unbounded();
         let (reload_tx, reload_rx) = crossbeam_channel::unbounded();
@@ -193,21 +190,22 @@ impl DynamicPattern {
         let (getstate_tx, getstate_rx) = crossbeam_channel::unbounded();
         let (reqstate_tx, reqstate_rx) = crossbeam_channel::unbounded();
 
-        let mut watcher = watcher(reload_tx, Duration::from_millis(50)).unwrap();
+        let mut watcher: notify::RecommendedWatcher =
+            notify::Watcher::new_immediate(move |res| match res {
+                Ok(event) => match reload_tx.send(event) {
+                    Err(e) => return,
+                    _ => {}
+                },
+                Err(e) => println!("watch error: {:?}", e),
+            })
+            .unwrap();
 
-        match watcher.watch(
-            fs::canonicalize(codepath).unwrap(),
-            RecursiveMode::Recursive,
-        ) {
-            Err(e) => {
-                error!(
-                    "could not watch dyn pattern for {}, {}",
-                    codepath.to_str().unwrap(),
-                    e
-                );
-            }
-            _ => {}
-        }
+        watcher
+            .watch(
+                fs::canonicalize(codepath).unwrap(),
+                notify::RecursiveMode::Recursive,
+            )
+            .unwrap();
 
         let c = codepath.to_path_buf();
 
@@ -247,55 +245,90 @@ impl DynamicPattern {
             d.setup(mapping.clone());
 
             loop {
-                match frame_rx.recv() {
-                    Ok(frame) => match d.dynamic_process(frame) {
-                        Ok(output) => match result_tx.send(Ok(output)) {
-                            Err(e) => {
-                                error!("Dynamic pattern send error: {}", e);
-                            }
-                            _ => {}
-                        },
-                        Err(e) => {
-                            error!("Dynamic error: {}", e);
-                            match result_tx.send(Err(DynamicError::ProduceError)) {
+                select! {
+
+                    //Render frame
+                    recv(frame_rx) -> frame => {
+                        match frame {
+                            Ok(frame) => match d.dynamic_process(frame) {
+                                Ok(output) => match result_tx.send(Ok(output)) {
+                                    Err(e) => {
+                                        error!("Dynamic pattern send error: {}", e);
+                                    }
+                                    _ => {}
+                                },
                                 Err(e) => {
-                                    error!("Dynamic pattern send error: {}", e);
+                                    error!("Dynamic error: {}", e);
+                                    match result_tx.send(Err(DynamicError::ProduceError)) {
+                                        Err(e) => {
+                                            error!("Dynamic pattern send error: {}", e);
+                                        }
+                                        _ => {}
+                                    }
+                                    match reload_rx.recv() {
+                                        Ok(_) => break,
+                                        _ => {}
+                                    }
                                 }
-                                _ => {}
-                            }
-                            match reload_rx.recv() {
-                                Ok(_) => break,
-                                _ => {}
+                            },
+                            Err(e) => {
+                                error!("Dynamic pattern recieve error: {}", e);
                             }
                         }
                     },
-                    Err(e) => {
-                        error!("Dynamic pattern recieve error: {}", e);
-                    }
-                }
 
-                match cancel_rx.try_recv() {
-                    Ok(_) => {
-                        return;
-                    }
-                    _ => {}
-                }
-
-                match reload_rx.try_recv() {
-                    Ok(event) => {
-                        match event {
-                            notify::DebouncedEvent::Write(_) => {
-                                break;
+                    //Cancel (kill pattern)
+                    recv(cancel_rx) -> cancel => {
+                        match cancel {
+                            Ok(_) => {
+                                return;
                             }
                             _ => {}
-                        };
+                        }
                     }
-                    _ => {}
-                }
 
-                match setstate_rx.try_recv() {
-                    Ok(state) => d.inject_state(state),
-                    _ => {}
+                    //Set state
+                    recv(setstate_rx) -> setstate => {
+                        match setstate {
+                            Ok(state) => d.inject_state(state),
+                            _ => {}
+                        }
+                    }
+
+                    //Request for internal state
+                    recv(reqstate_rx) -> reqstate => {
+                        match reqstate {
+                            Ok(_) => {
+                                match d.extract_state() {
+                                    Ok(state) => {
+                                        getstate_tx.send(Ok(state));
+                                    },
+                                    Err(e) => {
+                                        getstate_tx.send(Err(DynamicError::StateError(e.to_string())));
+                                    }
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+
+                    //Reload on file update
+                    recv(reload_rx) -> reload => {
+                        match reload {
+                            Ok(event) => {
+                                match event.kind {
+                                    EventKind::Modify(mf) => match mf {
+                                        notify::event::ModifyKind::Data(_) => {
+                                            break;
+                                        }
+                                        _ => {}
+                                    },
+                                    _ => {}
+                                };
+                            }
+                            _ => {}
+                        }
+                    }
                 }
             }
         });
@@ -311,7 +344,7 @@ impl DynamicPattern {
             getstate_channel: getstate_rx,
             reqstate_channel: reqstate_tx,
 
-            watcher: watcher,
+            _watcher: watcher,
         });
     }
 
@@ -500,6 +533,12 @@ impl DynamicPattern {
         let function = v8::Local::<v8::Function>::try_from(fn_value).expect("function expected");
         let function_global_handle = v8::Global::new(scope, function);
         Some(function_global_handle)
+    }
+}
+
+impl Drop for DynamicHolder {
+    fn drop(&mut self) {
+        self.cancel_channel.send(true);
     }
 }
 

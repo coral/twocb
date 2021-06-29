@@ -29,6 +29,7 @@ function beforeRender(frame, delta) {
     //     hue = 0.0;
     // }
     // hue += state.speed;
+    //
     fade = sin(frame.phase, 0.5);
     phase = sin(frame.phase, 1);
     hue = 0.1;
