@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::error;
 use sled;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -83,6 +84,22 @@ impl DataLayer {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.to_string()),
         }
+    }
+
+    pub fn clear_states_for_link(&mut self, key: &str) -> usize {
+        let mut found: usize = 0;
+        for r in self.state.scan_prefix(key) {
+            match r {
+                Ok((key, _)) => {
+                    self.state.remove(key);
+                    found = found + 1;
+                }
+                Err(e) => {
+                    error!("clear_states_for_link err: {}", e);
+                }
+            }
+        }
+        found
     }
 
     //pub fn get_layers() -> Vec<u8> {}

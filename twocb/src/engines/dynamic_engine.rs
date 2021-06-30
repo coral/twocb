@@ -301,6 +301,7 @@ impl DynamicPattern {
                             Ok(_) => {
                                 match d.extract_state() {
                                     Ok(state) => {
+                                        dbg!("extract state");
                                         getstate_tx.send(Ok(state));
                                     },
                                     Err(e) => {
@@ -538,7 +539,7 @@ impl DynamicPattern {
 
 impl Drop for DynamicHolder {
     fn drop(&mut self) {
-        self.cancel_channel.send(true);
+        self.cancel_channel.send(true).unwrap();
     }
 }
 

@@ -68,9 +68,7 @@ impl Controller {
                         let l = &mut compositor.lock().await;
                         l.write_pattern_state(k, &value)
                     }
-                    _ => {
-                        dbg!("SOMETHING ELSE");
-                    }
+                    _ => {}
                 }
             }
         });
@@ -118,6 +116,7 @@ impl Controller {
 
     pub async fn remove_link(&mut self, key: &str) -> bool {
         self.data.links.remove(&key);
+        self.data.clear_states_for_link(&key);
         self.compositor.lock().await.remove_link(key)
     }
 

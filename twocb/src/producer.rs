@@ -87,7 +87,8 @@ impl Producer {
                 index: self.index,
 
                 delta: self.last_frame.elapsed().as_millis() as f64,
-                phase: self.get_phase(),
+                phase: self.get_phase(1.0),
+                bar: self.get_phase(4.0),
 
                 colorchord: self.colorchord_data.clone(),
                 tempo: self.tempo_data.clone(),
@@ -132,8 +133,8 @@ impl Producer {
         return self.frame_channel_tx.subscribe();
     }
 
-    fn get_phase(&self) -> f64 {
-        self.cycletimer.elapsed().as_secs_f64() / self.tempo % 1.0
+    fn get_phase(&self, mult: f64) -> f64 {
+        self.cycletimer.elapsed().as_secs_f64() / (self.tempo * mult) % 1.0
     }
 
     // Settings
@@ -149,6 +150,7 @@ pub struct Frame {
 
     pub delta: f64,
     pub phase: f64,
+    pub bar: f64,
 
     pub colorchord: audio::colorchord::NoteResult,
     pub tempo: audio::TempoResult,
