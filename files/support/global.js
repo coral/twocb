@@ -41,14 +41,14 @@ function _internalRender(frame) {
     return _pixelBuffer;
 }
 
-function rgb(i, r, g, b) {
+function rgb(index, r, g, b) {
     _pixelBuffer[index * 4] = r;
     _pixelBuffer[index * 4 + 1] = g;
     _pixelBuffer[index * 4 + 2] = b;
     _pixelBuffer[index * 4 + 3] = 1.0;
 }
 
-function rgba(i, r, g, b, a) {
+function rgba(index, r, g, b, a) {
     _pixelBuffer[index * 4] = r;
     _pixelBuffer[index * 4 + 1] = g;
     _pixelBuffer[index * 4 + 2] = b;
@@ -106,3 +106,15 @@ function triangle(phase) {
 
 let max = Math.max;
 let floor = Math.floor;
+let PI = Math.PI;
+let PI2 = Math.PI2;
+
+//Other (PixelBlaze compat)
+
+function random(max) {
+    return Math.random() * max;
+}
+
+function abs(number) {
+    return Math.abs(number);
+}
