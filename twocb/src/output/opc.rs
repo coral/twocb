@@ -37,8 +37,6 @@ impl output::Adapter for OPCOutput {
                     Err(e) => {
                         warn!("Could not send OPC message with error: {}.", e);
                         self.send_fails = self.send_fails + 1;
-
-                        if self.send_fails > 10 {}
                     }
                     _ => (),
                 }

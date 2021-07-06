@@ -301,7 +301,6 @@ impl DynamicPattern {
                             Ok(_) => {
                                 match d.extract_state() {
                                     Ok(state) => {
-                                        dbg!("extract state");
                                         getstate_tx.send(Ok(state));
                                     },
                                     Err(e) => {
