@@ -11,7 +11,9 @@ const BROADCAST_CHANNEL: u8 = 0x00;
 
 pub struct OPCOutput {
     addr: SocketAddr,
-    stream: Option<Arc<Mutex<tokio::net::TcpStream>>>,
+    send_fails: usize,
+    reconnection_attempts: usize,
+    stream: Option<tokio::net::TcpStream>,
     buffer: Vec<u8>,
 }
 
@@ -31,8 +33,13 @@ impl output::Adapter for OPCOutput {
 
         if let Some(ref s) = self.stream {
             {
-                match s.clone().lock().unwrap().try_write(self.buffer.as_slice()) {
-                    Err(e) => warn!("Could not send OPC message with error: {}", e),
+                match s.try_write(self.buffer.as_slice()) {
+                    Err(e) => {
+                        warn!("Could not send OPC message with error: {}.", e);
+                        self.send_fails = self.send_fails + 1;
+
+                        if self.send_fails > 10 {}
+                    }
                     _ => (),
                 }
             }
@@ -44,6 +51,8 @@ impl OPCOutput {
     pub fn new(addr: SocketAddr) -> OPCOutput {
         return OPCOutput {
             addr,
+            send_fails: 0,
+            reconnection_attempts: 0,
             stream: None,
             buffer: vec![0; (2000 * 3) + 4],
         };
@@ -51,7 +60,7 @@ impl OPCOutput {
 
     pub async fn connect(&mut self) -> anyhow::Result<()> {
         let stream = TcpStream::connect(self.addr).await?;
-        self.stream = Some(Arc::new(Mutex::new(stream)));
+        self.stream = Some(stream);
         info!("Connected to OPC Server: {}", self.addr);
         Ok(())
     }
