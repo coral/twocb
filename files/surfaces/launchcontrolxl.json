@@ -1,0 +1,288 @@
+{
+    "buttons": [
+      {
+        "name": "TrackFocus1",
+        "channel": 41,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus2",
+        "channel": 42,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus3",
+        "channel": 44,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus4",
+        "channel": 44,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus5",
+        "channel": 57,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus6",
+        "channel": 58,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus7",
+        "channel": 59,
+        "message": 152
+      },
+      {
+        "name": "TrackFocus8",
+        "channel": 60,
+        "message": 152
+      },
+      {
+        "name": "TrackControl1",
+        "channel": 73,
+        "message": 152
+      },
+      {
+        "name": "TrackControl2",
+        "channel": 74,
+        "message": 152
+      },
+      {
+        "name": "TrackControl3",
+        "channel": 75,
+        "message": 152
+      },
+      {
+        "name": "TrackControl4",
+        "channel": 76,
+        "message": 152
+      },
+      {
+        "name": "TrackControl5",
+        "channel": 89,
+        "message": 152
+      },
+      {
+        "name": "TrackControl6",
+        "channel": 90,
+        "message": 152
+      },
+      {
+        "name": "TrackControl7",
+        "channel": 91,
+        "message": 152
+      },
+      {
+        "name": "TrackControl8",
+        "channel": 92,
+        "message": 152
+      },
+      {
+        "name": "Device",
+        "channel": 105,
+        "message": 152
+      },
+      {
+        "name": "Mute",
+        "channel": 106,
+        "message": 152
+      },
+      {
+        "name": "Solo",
+        "channel": 107,
+        "message": 152
+      },
+      {
+        "name": "RecordArm",
+        "channel": 108,
+        "message": 152
+      },
+      {
+        "name": "SendSelectLeft",
+        "channel": 104,
+        "message": 184
+      },
+      {
+        "name": "SendSelectRight",
+        "channel": 105,
+        "message": 184
+      },
+      {
+        "name": "TrackSelectLeft",
+        "channel": 107,
+        "message": 184
+      },
+      {
+        "name": "TrackSelectRight",
+        "channel": 108,
+        "message": 184
+      }
+    ],
+    "faders": [
+      {
+        "name": "Fader1",
+        "channel": 77,
+        "message": 184
+      },
+      {
+        "name": "Fader2",
+        "channel": 78,
+        "message": 184
+      },
+      {
+        "name": "Fader3",
+        "channel": 79,
+        "message": 184
+      },
+      {
+        "name": "Fader4",
+        "channel": 80,
+        "message": 184
+      },
+      {
+        "name": "Fader5",
+        "channel": 81,
+        "message": 184
+      },
+      {
+        "name": "Fader6",
+        "channel": 82,
+        "message": 184
+      },
+      {
+        "name": "Fader7",
+        "channel": 83,
+        "message": 184
+      },
+      {
+        "name": "Fader8",
+        "channel": 84,
+        "message": 184
+      }
+    ],
+    "encoders": [
+      {
+        "name": "SendA1",
+        "channel": 13,
+        "message": 184
+      },
+      {
+        "name": "SendA2",
+        "channel": 14,
+        "message": 184
+      },
+      {
+        "name": "SendA3",
+        "channel": 15,
+        "message": 184
+      },
+      {
+        "name": "SendA4",
+        "channel": 16,
+        "message": 184
+      },
+      {
+        "name": "SendA5",
+        "channel": 17,
+        "message": 184
+      },
+      {
+        "name": "SendA6",
+        "channel": 18,
+        "message": 184
+      },
+      {
+        "name": "SendA7",
+        "channel": 19,
+        "message": 184
+      },
+      {
+        "name": "SendA8",
+        "channel": 20,
+        "message": 184
+      },
+      {
+        "name": "SendB1",
+        "channel": 29,
+        "message": 184
+      },
+      {
+        "name": "SendB2",
+        "channel": 30,
+        "message": 184
+      },
+      {
+        "name": "SendB3",
+        "channel": 31,
+        "message": 184
+      },
+      {
+        "name": "SendB4",
+        "channel": 32,
+        "message": 184
+      },
+      {
+        "name": "SendB5",
+        "channel": 33,
+        "message": 184
+      },
+      {
+        "name": "SendB6",
+        "channel": 34,
+        "message": 184
+      },
+      {
+        "name": "SendB7",
+        "channel": 35,
+        "message": 184
+      },
+      {
+        "name": "SendB8",
+        "channel": 36,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device1",
+        "channel": 49,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device2",
+        "channel": 50,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device3",
+        "channel": 51,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device4",
+        "channel": 52,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device5",
+        "channel": 53,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device6",
+        "channel": 54,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device7",
+        "channel": 55,
+        "message": 184
+      },
+      {
+        "name": "Pan/Device8",
+        "channel": 56,
+        "message": 184
+      }
+    ]
+  }

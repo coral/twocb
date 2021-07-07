@@ -1,0 +1,23 @@
+[
+    {
+        "in": "Fader1",
+        "out": {
+            "type": "opacity",
+            "path": "0"
+        }
+    },
+    {
+        "in": "Fader2",
+        "out": {
+            "type": "opacity",
+            "path": "1"
+        }
+    },
+    {
+        "in": "Pan/Device1",
+        "out": {
+            "type": "parameter",
+            "path": "dyna_complement.js/speed"
+        }
+    }
+]

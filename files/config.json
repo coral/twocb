@@ -15,5 +15,10 @@
         "host": "127.0.0.1",
         "port": 3030
     },
-    "mapping": "v6.json"
+    "mapping": "v6.json",
+    "control": {
+        "surface": "launchcontrolxl.json",
+        "featuremap": "fm1.json",
+        "device": 0
+    }
 }

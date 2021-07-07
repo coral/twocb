@@ -38,3 +38,4 @@ strum_macros = "0.21"
 midir = "0.7.0"
 async-trait = "0.1.50"
 thiserror = "1.0.25"
+midimapper = { git = "https://github.com/coral/midimapper.git" }

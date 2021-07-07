@@ -1,6 +1,6 @@
 // Animation speed in milliseconds. Higher numbers are slower
 state = {
-    speed: 10000,
+    speed: 100,
 };
 var speed = 10000;
 // Percent of color wheel for ends. 1/2 is complementary, 1/3 and 2/3 is triadic, etc
@@ -54,8 +54,8 @@ function rgb2hsv(h, s, v) {
 }
 
 function beforeRender(y, delta) {
-    speed = state.speed;
-    position += delta / speed;
+    speed = state.speed * 100;
+    position += delta / (speed + 0.01);
     if (position > 1) {
         position = 0;
     }

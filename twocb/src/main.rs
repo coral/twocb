@@ -5,6 +5,7 @@ mod controller;
 mod data;
 mod engines;
 mod layers;
+mod midi;
 mod output;
 mod pixels;
 mod producer;
@@ -17,6 +18,7 @@ use pretty_env_logger;
 use std::env;
 use std::thread;
 
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -91,6 +93,27 @@ pub async fn bootstrap() {
             api_ctrl,
         )
         .expect("kek");
+    });
+
+    //Midi Surface
+    let surface_db = db.clone();
+    let midi_surface = midi::MidiSurface::new(
+        &std::path::Path::new("files/surfaces/").join(&cfg.control.surface),
+        &std::path::Path::new("files/featuremap/").join(&cfg.control.featuremap),
+        ctrl.clone(),
+        surface_db,
+    );
+
+    let mut midi_surface = match midi_surface {
+        Ok(v) => v,
+        Err(e) => {
+            error!("MIDI ERROR: {}", e);
+            return;
+        }
+    };
+
+    tokio::spawn(async move {
+        midi_surface.watch().await;
     });
 
     let prc_cfg = cfg.clone();
