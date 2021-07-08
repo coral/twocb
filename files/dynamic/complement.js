@@ -2,7 +2,6 @@
 state = {
     speed: 100,
 };
-var base_speed = 100000;
 var speed = 10000;
 // Percent of color wheel for ends. 1/2 is complementary, 1/3 and 2/3 is triadic, etc
 var colorPercent = 1 / 2;
@@ -55,7 +54,7 @@ function rgb2hsv(h, s, v) {
 }
 
 function beforeRender(y, delta) {
-    speed = (base_speed * state.speed ) + 1;
+    speed = state.speed;
     position += delta / speed;
     if (position > 1) {
         position = 0;

@@ -78,7 +78,7 @@ impl MidiSurface {
                             let s = self.data.state.get(&v.pattern_key).unwrap().unwrap();
                             let mut decode: Value = serde_json::from_slice(&s).unwrap();
                             if decode.get(&v.state_key).is_some() {
-                                let newvalue = val as f64 * (1.0 / 127.0);
+                                let newvalue = MidiSurface::scale_param(val as f64, v.min, v.max);
                                 *decode.get_mut(&v.state_key).unwrap() = json!(newvalue);
                                 self.data
                                     .state
@@ -94,7 +94,13 @@ impl MidiSurface {
         }
     }
 
-    async fn handle_parameter(&mut self, path: &str, val: u8) {}
+    fn scale_param(val: f64, min: f64, max: f64) -> f64 {
+        if min < max {
+            return (max - min) * (val * (1.0 / 127.0)) + min;
+        } else {
+            return (min - max) * (1.0 - (val * (1.0 / 127.0))) + max;
+        }
+    }
 }
 
 #[derive(Error, Debug)]

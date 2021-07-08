@@ -19,5 +19,14 @@
             "type": "parameter",
             "path": "demo_inject.js/hue"
         }
+    },
+    {
+        "in": "Pan/Device2",
+        "out": {
+            "type": "parameter",
+            "path": "demo_complement.js/speed",
+            "min": 10000.0,
+            "max": 100.0
+        }
     }
 ]

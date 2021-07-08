@@ -20,10 +20,22 @@ pub struct Out {
     pub type_field: OutType,
     pub path: String,
 
+    #[serde(default = "min")]
+    pub min: f64,
+    #[serde(default = "max")]
+    pub max: f64,
+
     #[serde(skip)]
     pub pattern_key: String,
     #[serde(skip)]
     pub state_key: String,
+}
+
+fn min() -> f64 {
+    0.0
+}
+fn max() -> f64 {
+    1.0
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
