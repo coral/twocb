@@ -5,6 +5,7 @@ use std::sync::Arc;
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
+    pub fps: f64,
     pub endpoints: Endpoints,
     pub audio: Audio,
     pub database: String,

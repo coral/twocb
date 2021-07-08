@@ -46,7 +46,7 @@ fn main() {
 }
 
 pub async fn bootstrap() {
-    env::set_var("RUST_LOG", "debug");
+    env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
 
     let opts: Opts = Opts::parse();
@@ -177,7 +177,7 @@ pub async fn run(
         }
     }
 
-    let mut prod = producer::Producer::new(60.0, mapping);
+    let mut prod = producer::Producer::new(cfg.fps, mapping);
 
     prod.attach_colorchord(colorchord_channel);
     prod.attach_tempo(tempo_channel);
