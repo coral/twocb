@@ -10,6 +10,7 @@ pub struct DataLayer {
 
     pub links: sled::Tree,
     pub state: sled::Tree,
+    pub global: sled::Tree,
     subscribed_keys: HashMap<String, mpsc::Sender<Vec<u8>>>,
 }
 
@@ -19,10 +20,12 @@ impl DataLayer {
             Ok(db) => {
                 let state = db.open_tree("state").unwrap();
                 let links = db.open_tree("layers").unwrap();
+                let global = db.open_tree("global").unwrap();
                 return Ok(DataLayer {
                     db,
                     state,
                     links,
+                    global,
                     subscribed_keys: HashMap::new(),
                 });
             }

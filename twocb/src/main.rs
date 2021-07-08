@@ -18,7 +18,6 @@ use pretty_env_logger;
 use std::env;
 use std::thread;
 
-use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::oneshot;

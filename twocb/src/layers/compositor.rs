@@ -4,6 +4,7 @@ use crate::producer;
 
 use atomic_counter::AtomicCounter;
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
@@ -11,16 +12,24 @@ use std::sync::{Arc, Mutex};
 #[allow(dead_code)]
 pub struct Compositor {
     pub links: Vec<LinkAllocation>,
+    render_order: Vec<Order>,
     lookup: HashMap<String, Arc<Mutex<Link>>>,
     buffer: Vec<vecmath::Vector4<f64>>,
 
     counter: atomic_counter::ConsistentCounter,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+pub struct Order {
+    reference: usize,
+    pub name: String,
+}
+
 impl Compositor {
     pub fn new() -> Compositor {
         Compositor {
             links: vec![],
+            render_order: vec![],
             lookup: HashMap::new(),
 
             buffer: vec![],
@@ -28,8 +37,26 @@ impl Compositor {
         }
     }
 
-    pub fn add_link(&mut self, link: Link) {
+    pub fn push(&mut self, link: Link) {
         let name = link.name.clone();
+        let on = link.name.clone();
+        let arclink = Arc::new(Mutex::new(link));
+        let la = LinkAllocation {
+            id: self.counter.inc(),
+            name,
+            link: arclink.clone(),
+        };
+
+        let new_order = push_index(&mut self.links, la);
+        self.render_order.push(Order {
+            reference: new_order,
+            name: on,
+        })
+    }
+
+    pub fn insert(&mut self, link: Link, index: usize) {
+        let name = link.name.clone();
+        let on = link.name.clone();
         let arclink = Arc::new(Mutex::new(link));
         let la = LinkAllocation {
             id: self.counter.inc(),
@@ -38,6 +65,17 @@ impl Compositor {
         };
 
         self.links.push(la);
+        self.render_order.insert(
+            index,
+            Order {
+                reference: index,
+                name: on,
+            },
+        );
+    }
+
+    pub fn get_order(&self) -> &[Order] {
+        &self.render_order
     }
 
     pub fn remove_link(&mut self, name: &str) -> bool {
@@ -97,4 +135,10 @@ impl Compositor {
 
         return self.buffer.clone();
     }
+}
+
+fn push_index<T>(v: &mut Vec<T>, item: T) -> usize {
+    let idx = v.len();
+    v.push(item);
+    idx
 }

@@ -38,9 +38,11 @@ impl Controller {
     }
 
     pub async fn bootstrap(&mut self) {
-        for result in self.data.links.iter() {
+        let order = self.lookup_order().await.unwrap();
+        for (index, entry) in order.iter().enumerate() {
+            let result = self.data.links.get(&entry.name).unwrap();
             match result {
-                Ok((k, v)) => {
+                Some(v) => {
                     let link: DeLink = serde_json::from_slice(&v).unwrap();
                     println!("{:?}", link);
                     match self.load_link(link).await {
@@ -108,16 +110,35 @@ impl Controller {
         let key = link.name.clone();
         let newlink = Link::create(link.name, steps);
         self.compositor.lock().await.remove_link(&key);
-        self.compositor.lock().await.add_link(newlink);
+        self.compositor.lock().await.push(newlink);
         self.data.write_layer(&key, &store);
 
+        self.sync_order().await;
+
         Ok(())
+    }
+
+    async fn sync_order(&mut self) {
+        let order = serde_json::to_vec(self.compositor.lock().await.get_order()).unwrap();
+        self.data.global.insert("order", order);
+    }
+
+    pub async fn lookup_order(&self) -> Result<Vec<compositor::Order>, &str> {
+        match self.data.global.get("order").unwrap() {
+            Some(v) => {
+                let order: Vec<compositor::Order> = serde_json::from_slice(&v).unwrap();
+                Ok(order)
+            }
+            None => return Err("lookup order error"),
+        }
     }
 
     pub async fn remove_link(&mut self, key: &str) -> bool {
         self.data.links.remove(&key);
         self.data.clear_states_for_link(&key);
-        self.compositor.lock().await.remove_link(key)
+        let k = self.compositor.lock().await.remove_link(key);
+        self.sync_order().await;
+        return k;
     }
 
     pub async fn add_link(&mut self, new_link: DeLink) -> Result<(), &str> {

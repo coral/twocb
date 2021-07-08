@@ -40,6 +40,13 @@ async fn get_layers(ctrl: web::Data<Arc<Mutex<controller::Controller>>>) -> impl
     HttpResponse::Ok().body(res)
 }
 
+#[get("/layers/order")]
+async fn get_layers_order(ctrl: web::Data<Arc<Mutex<controller::Controller>>>) -> impl Responder {
+    let res = ctrl.clone().lock().await.lookup_order().await.unwrap();
+    let ans = serde_json::to_string(&res).unwrap();
+    HttpResponse::Ok().body(ans)
+}
+
 #[post("/layer")]
 async fn add_layer(
     info: web::Json<layers::DeLink>,
@@ -92,6 +99,7 @@ pub async fn start(
             .service(get_states)
             .service(set_state)
             .service(get_layers)
+            .service(get_layers_order)
             .service(add_layer)
             .service(delete_layer)
             .service(set_opacity)
