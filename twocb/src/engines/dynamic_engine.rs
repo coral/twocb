@@ -401,7 +401,6 @@ impl DynamicPattern {
         let context: &v8::Context = self.context.borrow();
         let function_global_handle = self.set_state.as_ref().expect("function not loaded");
         let function: &v8::Function = function_global_handle.borrow();
-        debug!("Injecting state: {}", state);
         let state = v8::String::new(scope, &state).unwrap().into();
 
         let mut try_catch = &mut v8::TryCatch::new(scope);

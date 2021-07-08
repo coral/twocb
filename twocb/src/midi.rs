@@ -78,7 +78,7 @@ impl MidiSurface {
                             let s = self.data.state.get(&v.pattern_key).unwrap().unwrap();
                             let mut decode: Value = serde_json::from_slice(&s).unwrap();
                             if decode.get(&v.state_key).is_some() {
-                                let newvalue = val as f64 * (100.0 / 127.0);
+                                let newvalue = val as f64 * (1.0 / 127.0);
                                 *decode.get_mut(&v.state_key).unwrap() = json!(newvalue);
                                 self.data
                                     .state

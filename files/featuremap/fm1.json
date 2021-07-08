@@ -17,7 +17,7 @@
         "in": "Pan/Device1",
         "out": {
             "type": "parameter",
-            "path": "dyna_complement.js/speed"
+            "path": "demo_inject.js/hue"
         }
     }
 ]
