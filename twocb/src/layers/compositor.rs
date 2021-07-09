@@ -1,4 +1,4 @@
-use crate::layers::blending;
+use crate::layers::{self, blending};
 use crate::layers::{Link, LinkAllocation, LinkResult};
 use crate::producer;
 
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
+use tokio::task::JoinError;
 
 #[allow(dead_code)]
 pub struct Compositor {
@@ -110,6 +111,7 @@ impl Compositor {
                 let mut re = link.lock().unwrap();
                 LinkResult {
                     id: cid,
+                    name: re.name.clone(),
                     opacity: re.opacity,
                     output: re.render(frame),
                 }
@@ -117,19 +119,30 @@ impl Compositor {
         }
 
         let ok = futures::future::join_all(handles).await;
-        for r in ok {
-            match r {
-                Ok(result) => {
+
+        let ok = ok
+            .into_iter()
+            .collect::<Result<Vec<layers::LinkResult>, JoinError>>();
+
+        let mut result = match ok {
+            Ok(v) => v,
+            Err(e) => {
+                error!("'JoinError' in the compositor rendering function?? {}", e);
+                return self.buffer.clone();
+            }
+        };
+
+        for index in &self.render_order {
+            match result.iter().find(move |x| x.name == index.name) {
+                Some(link) => {
                     self.buffer = blending::blend(
                         blending::BlendModes::Add,
                         mem::take(&mut self.buffer),
-                        blending::scale(result.output, result.opacity),
+                        blending::scale(link.output.clone(), link.opacity),
                         0.1,
                     );
                 }
-                Err(e) => {
-                    error!("'JoinError' in the compositor rendering function?? {}", e);
-                }
+                _ => {}
             }
         }
 

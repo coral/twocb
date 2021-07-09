@@ -29,6 +29,7 @@ unsafe impl Send for LinkAllocation {}
 #[derive(Debug)]
 struct LinkResult {
     id: usize,
+    name: String,
     opacity: f64,
     output: Vec<vecmath::Vector4<f64>>,
 }
