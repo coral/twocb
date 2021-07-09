@@ -3,14 +3,14 @@
         "in": "Fader1",
         "out": {
             "type": "opacity",
-            "path": "0"
+            "path": "demo"
         }
     },
     {
         "in": "Fader2",
         "out": {
             "type": "opacity",
-            "path": "1"
+            "path": "kuk"
         }
     },
     {

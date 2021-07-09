@@ -85,6 +85,17 @@ impl MidiSurface {
                                     .insert(&v.pattern_key, serde_json::to_vec(&decode).unwrap());
                             }
                         }
+                        featuremap::OutType::Opacity => {
+                            let order = self
+                                .controller
+                                .lock()
+                                .await
+                                .set_opacity(
+                                    &v.path,
+                                    MidiSurface::scale_param(val as f64, 0.0, 1.0),
+                                )
+                                .await;
+                        }
                         _ => {}
                     },
                     None => {}
