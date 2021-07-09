@@ -7,7 +7,7 @@
         }
     },
     {
-        "in": "Fader2",
+        "in": "Fader8",
         "out": {
             "type": "opacity",
             "path": "kuk"
@@ -17,16 +17,32 @@
         "in": "Pan/Device1",
         "out": {
             "type": "parameter",
-            "path": "demo_inject.js/hue"
-        }
-    },
-    {
-        "in": "Pan/Device2",
-        "out": {
-            "type": "parameter",
             "path": "demo_complement.js/speed",
             "min": 10000.0,
             "max": 100.0
+        }
+    },
+    {
+        "in": "SendA8",
+        "out": {
+            "type": "parameter",
+            "path": "kuk_strobe.js/hue"
+        }
+    },
+    {
+        "in": "SendB8",
+        "out": {
+            "type": "parameter",
+            "path": "kuk_strobe.js/saturation"
+        }
+    },
+    {
+        "in": "Pan/Device8",
+        "out": {
+            "type": "parameter",
+            "path": "kuk_strobe.js/speed",
+            "min": 1,
+            "max": 200
         }
     }
 ]

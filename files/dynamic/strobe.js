@@ -1,16 +1,18 @@
 state = {
     hue: 1.0,
     saturation: 0.0,
+    speed: 0.0,
 };
 
 var bar = 0.0;
 
 function beforeRender(frame, delta) {
     if (frame.bar > 0.9) {
-        bar = 1.0;
+        bar = square(frame.phase, state.speed);
     } else {
         bar = 0.0;
     }
+
 }
 
 function render(index) {

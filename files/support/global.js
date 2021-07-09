@@ -102,6 +102,15 @@ function triangle(phase) {
     return Math.acos(Math.sin(phase)) / 1.570796326794896;
 }
 
+function square(phase, cycle) {
+    let l = sin(phase, cycle);
+    if (l > 0.5) {
+        return 1.0;
+    } else {
+        return 0.0;
+    }
+}
+
 /// Easy shorthands
 
 let max = Math.max;
