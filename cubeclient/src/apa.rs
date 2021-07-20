@@ -17,14 +17,14 @@ impl Manager {
         clock_speed: u32,
         pipe: tokio::sync::broadcast::Receiver<Vec<util::Color>>,
     ) -> Manager {
-        let wrk = [spi::Bus::Spi0, spi::Bus::Spi1, spi::Bus::Spi2];
+        let wrk = [spi::Bus::Spi0, spi::Bus::Spi1, spi::Bus::Spi2, spi::Bus::Spi3];
 
         let mut tp = Vec::new();
         let pixels_per_strip = (num_pixels / 2) as usize;
-        for n in 0..channels {
+    
             let b = blinkt::BlinktSpi {
                 spi: spi::Spi::new(
-                    wrk[n as usize],
+                    spi::Bus::Spi0,
                     spi::SlaveSelect::Ss0,
                     clock_speed,
                     spi::Mode::Mode0,
@@ -41,7 +41,29 @@ impl Manager {
                     4 + (((pixels_per_strip as f32 / 16.0f32) + 0.94f32) as usize)
                 ],
             });
-        }
+
+            let v = blinkt::BlinktSpi {
+                spi: spi::Spi::new(
+                    spi::Bus::Spi3,
+                    spi::SlaveSelect::Ss0,
+                    clock_speed,
+                    spi::Mode::Mode0,
+                )
+                .unwrap(),
+            };
+
+            tp.push(blinkt::Blinkt {
+                serial_output: Box::new(v),
+                pixels: vec![blinkt::Pixel::default(); pixels_per_strip],
+                clear_on_drop: true,
+                end_frame: vec![
+                    0u8;
+                    4 + (((pixels_per_strip as f32 / 16.0f32) + 0.94f32) as usize)
+                ],
+            });
+        
+        
+
         return Manager {
             num_pixels,
             channels,

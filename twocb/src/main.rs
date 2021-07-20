@@ -45,7 +45,7 @@ fn main() {
 }
 
 pub async fn bootstrap() {
-    env::set_var("RUST_LOG", "info");
+    env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
     let opts: Opts = Opts::parse();
