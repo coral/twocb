@@ -61,7 +61,7 @@ async fn main() {
 
     //setup apa
     #[cfg(target_os = "linux")]
-    let mut op = apa::Manager::bootstrap(144, opts.channels, 8_000_000, tx.subscribe());
+    let mut op = apa::Manager::bootstrap(864, opts.channels, 8_000_000, tx.subscribe());
     #[cfg(target_os = "linux")]
     let output = tokio::spawn(async move {
         op.spin().await;
