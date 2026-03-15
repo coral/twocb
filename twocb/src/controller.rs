@@ -1,6 +1,6 @@
 use crate::data;
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
-use crate::layers::{compositor, DeLink, EngineType, Link, Step};
+use crate::layers::{DeLink, EngineType, Link, Step, compositor};
 use crate::pixels;
 
 use log::error;

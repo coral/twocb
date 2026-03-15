@@ -7,7 +7,7 @@ mod screen;
 mod subtract;
 
 #[derive(
-    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::ToString, strum_macros::EnumString,
+    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::Display, strum_macros::EnumString,
 )]
 #[allow(dead_code)]
 pub enum BlendModes {

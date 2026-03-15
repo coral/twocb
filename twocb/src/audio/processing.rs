@@ -1,5 +1,5 @@
 use crate::audio;
-use aubio::{Onset, Tempo, FFT};
+use aubio::{FFT, Onset, Tempo};
 use log::error;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;

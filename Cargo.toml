@@ -4,3 +4,4 @@ members = [
     "cubeclient",
 ]
 default-members = ["twocb"]
+resolver = "2"

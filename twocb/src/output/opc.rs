@@ -1,10 +1,7 @@
 use crate::output;
 use log::{info, warn};
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
 use tokio::net::TcpStream;
-use zeroconf::prelude::*;
-use zeroconf::{MdnsService, TxtRecord};
 
 const SET_PIXEL_COLORS: u8 = 0x00;
 const BROADCAST_CHANNEL: u8 = 0x00;
@@ -61,14 +58,5 @@ impl OPCOutput {
         self.stream = Some(stream);
         info!("Connected to OPC Server: {}", self.addr);
         Ok(())
-    }
-}
-
-pub struct OPCDiscovery {}
-
-impl OPCDiscovery {
-    fn advertise() {
-        let _service = MdnsService::new("_opc._tcp", 3030);
-        let _txt_record = TxtRecord::new();
     }
 }

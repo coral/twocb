@@ -1,7 +1,7 @@
 use crate::controller;
 use crate::data;
 use crate::layers;
-use actix_web::{delete, get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpResponse, HttpServer, Responder, delete, get, post, web};
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -94,8 +94,8 @@ pub async fn start(
 ) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
-            .data(RwLock::new(state.clone()))
-            .data(ctrl.clone())
+            .app_data(web::Data::new(RwLock::new(state.clone())))
+            .app_data(web::Data::new(ctrl.clone()))
             .service(get_states)
             .service(set_state)
             .service(get_layers)

@@ -1,8 +1,8 @@
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::producer;
 use serde::{
-    ser::{SerializeStruct, Serializer},
     Deserialize, Serialize,
+    ser::{SerializeStruct, Serializer},
 };
 
 use std::fmt;
@@ -104,7 +104,7 @@ impl fmt::Debug for Step {
 }
 
 #[derive(
-    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::ToString, strum_macros::EnumString,
+    Clone, Copy, Debug, Serialize, Deserialize, strum_macros::Display, strum_macros::EnumString,
 )]
 pub enum EngineType {
     Rse,

@@ -3,13 +3,11 @@ use crate::pixels;
 use crate::producer;
 use crossbeam_channel::select;
 use glob::glob;
-use log::{debug, error, info};
+use log::{error, info};
 use notify::{EventKind, Watcher};
-use rusty_v8 as v8;
-use serde_v8;
-use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::fs;
+use std::pin::pin;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -39,7 +37,7 @@ impl engines::Engine for DynamicEngine {
                 }
                 rp
             }
-            Err(e) => Vec::new(),
+            Err(_e) => Vec::new(),
         }
     }
 
@@ -75,14 +73,10 @@ impl DynamicEngine {
 }
 
 fn initalize_runtime() {
-    let platform = v8::new_default_platform().unwrap();
+    let platform = v8::new_default_platform(0, false).make_shared();
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();
     info!("Initalized the V8 platform.");
-}
-
-fn shutdown_runtime() {
-    v8::V8::shutdown_platform();
 }
 
 struct DynamicHolder {
@@ -96,7 +90,7 @@ struct DynamicHolder {
     getstate_channel: crossbeam_channel::Receiver<Result<String, DynamicError>>,
     reqstate_channel: crossbeam_channel::Sender<bool>,
 
-    _watcher: notify::FsEventWatcher,
+    _watcher: notify::RecommendedWatcher,
 }
 
 impl engines::pattern::Pattern for DynamicHolder {
@@ -115,12 +109,11 @@ impl engines::pattern::Pattern for DynamicHolder {
         match self.result_channel.recv() {
             Ok(v) => match v {
                 Ok(output) => output,
-                Err(e) => {
+                Err(_e) => {
                     vec![[1.0, 0.0, 1.0, 1.0]; 864]
                 }
             },
-            Err(e) => {
-                //error!("{}", e);
+            Err(_e) => {
                 vec![[1.0, 0.0, 1.0, 1.0]; 864]
             }
         }
@@ -177,7 +170,7 @@ impl DynamicPattern {
         //Fix this later, this is so dumb
         let codepath = path.as_path();
         let patternname = match fs::read_to_string(codepath) {
-            Ok(v) => String::from(path.file_name().unwrap().to_str().unwrap()),
+            Ok(_v) => String::from(path.file_name().unwrap().to_str().unwrap()),
             Err(e) => return Err(e),
         };
 
@@ -191,9 +184,9 @@ impl DynamicPattern {
         let (reqstate_tx, reqstate_rx) = crossbeam_channel::unbounded();
 
         let mut watcher: notify::RecommendedWatcher =
-            notify::Watcher::new_immediate(move |res| match res {
+            notify::recommended_watcher(move |res| match res {
                 Ok(event) => match reload_tx.send(event) {
-                    Err(e) => return,
+                    Err(_e) => return,
                     _ => {}
                 },
                 Err(e) => println!("watch error: {:?}", e),
@@ -202,131 +195,133 @@ impl DynamicPattern {
 
         watcher
             .watch(
-                fs::canonicalize(codepath).unwrap(),
+                &fs::canonicalize(codepath).unwrap(),
                 notify::RecursiveMode::Recursive,
             )
             .unwrap();
 
         let c = codepath.to_path_buf();
 
-        std::thread::spawn(move || loop {
-            let code = match fs::read_to_string(c.clone()) {
-                Ok(v) => v,
-                _ => "".to_string(),
-            };
+        std::thread::spawn(move || {
+            loop {
+                let code = match fs::read_to_string(c.clone()) {
+                    Ok(v) => v,
+                    _ => "".to_string(),
+                };
 
-            let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-            let global_context;
-            {
-                let handle_scope = &mut v8::HandleScope::new(&mut isolate);
-                let context = v8::Context::new(handle_scope);
-                global_context = v8::Global::new(handle_scope, context);
-            }
+                let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+                let global_context;
+                {
+                    v8::scope!(let scope, &mut isolate);
+                    let context = v8::Context::new(&scope, Default::default());
+                    global_context = v8::Global::new(&scope, context);
+                }
 
-            let mut d = DynamicPattern {
-                isolate: isolate,
-                context: global_context,
-                setup: None,
-                get_state: None,
-                set_state: None,
-                render: None,
-            };
+                let mut d = DynamicPattern {
+                    isolate: isolate,
+                    context: global_context,
+                    setup: None,
+                    get_state: None,
+                    set_state: None,
+                    render: None,
+                };
 
-            match d.load(&global, &code) {
-                Ok(v) => {}
-                Err(e) => {
-                    error!("{}", e);
-                    match reload_rx.recv() {
-                        Ok(_) => continue,
-                        _ => {}
+                match d.load(&global, &code) {
+                    Ok(_v) => {}
+                    Err(e) => {
+                        error!("{}", e);
+                        match reload_rx.recv() {
+                            Ok(_) => continue,
+                            _ => {}
+                        }
                     }
                 }
-            }
-            d.setup(mapping.clone());
+                d.setup(mapping.clone());
 
-            loop {
-                select! {
+                loop {
+                    select! {
 
-                    //Render frame
-                    recv(frame_rx) -> frame => {
-                        match frame {
-                            Ok(frame) => match d.dynamic_process(frame) {
-                                Ok(output) => match result_tx.send(Ok(output)) {
-                                    Err(e) => {
-                                        error!("Dynamic pattern send error: {}", e);
-                                    }
-                                    _ => {}
-                                },
-                                Err(e) => {
-                                    error!("Dynamic error: {}", e);
-                                    match result_tx.send(Err(DynamicError::ProduceError)) {
+                        //Render frame
+                        recv(frame_rx) -> frame => {
+                            match frame {
+                                Ok(frame) => match d.dynamic_process(frame) {
+                                    Ok(output) => match result_tx.send(Ok(output)) {
                                         Err(e) => {
                                             error!("Dynamic pattern send error: {}", e);
                                         }
                                         _ => {}
-                                    }
-                                    match reload_rx.recv() {
-                                        Ok(_) => break,
-                                        _ => {}
-                                    }
-                                }
-                            },
-                            Err(e) => {
-                                error!("Dynamic pattern recieve error: {}", e);
-                            }
-                        }
-                    },
-
-                    //Cancel (kill pattern)
-                    recv(cancel_rx) -> cancel => {
-                        match cancel {
-                            Ok(_) => {
-                                return;
-                            }
-                            _ => {}
-                        }
-                    }
-
-                    //Set state
-                    recv(setstate_rx) -> setstate => {
-                        match setstate {
-                            Ok(state) => d.inject_state(state),
-                            _ => {}
-                        }
-                    }
-
-                    //Request for internal state
-                    recv(reqstate_rx) -> reqstate => {
-                        match reqstate {
-                            Ok(_) => {
-                                match d.extract_state() {
-                                    Ok(state) => {
-                                        getstate_tx.send(Ok(state));
                                     },
                                     Err(e) => {
-                                        getstate_tx.send(Err(DynamicError::StateError(e.to_string())));
-                                    }
-                                }
-                            },
-                            _ => {}
-                        }
-                    }
-
-                    //Reload on file update
-                    recv(reload_rx) -> reload => {
-                        match reload {
-                            Ok(event) => {
-                                match event.kind {
-                                    EventKind::Modify(mf) => match mf {
-                                        notify::event::ModifyKind::Data(_) => {
-                                            break;
+                                        error!("Dynamic error: {}", e);
+                                        match result_tx.send(Err(DynamicError::ProduceError)) {
+                                            Err(e) => {
+                                                error!("Dynamic pattern send error: {}", e);
+                                            }
+                                            _ => {}
                                         }
-                                        _ => {}
-                                    },
-                                    _ => {}
-                                };
+                                        match reload_rx.recv() {
+                                            Ok(_) => break,
+                                            _ => {}
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Dynamic pattern recieve error: {}", e);
+                                }
                             }
-                            _ => {}
+                        },
+
+                        //Cancel (kill pattern)
+                        recv(cancel_rx) -> cancel => {
+                            match cancel {
+                                Ok(_) => {
+                                    return;
+                                }
+                                _ => {}
+                            }
+                        }
+
+                        //Set state
+                        recv(setstate_rx) -> setstate => {
+                            match setstate {
+                                Ok(state) => d.inject_state(state),
+                                _ => {}
+                            }
+                        }
+
+                        //Request for internal state
+                        recv(reqstate_rx) -> reqstate => {
+                            match reqstate {
+                                Ok(_) => {
+                                    match d.extract_state() {
+                                        Ok(state) => {
+                                            getstate_tx.send(Ok(state));
+                                        },
+                                        Err(e) => {
+                                            getstate_tx.send(Err(DynamicError::StateError(e.to_string())));
+                                        }
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
+
+                        //Reload on file update
+                        recv(reload_rx) -> reload => {
+                            match reload {
+                                Ok(event) => {
+                                    match event.kind {
+                                        EventKind::Modify(mf) => match mf {
+                                            notify::event::ModifyKind::Data(_) => {
+                                                break;
+                                            }
+                                            _ => {}
+                                        },
+                                        _ => {}
+                                    };
+                                }
+                                _ => {}
+                            }
                         }
                     }
                 }
@@ -349,8 +344,9 @@ impl DynamicPattern {
     }
 
     fn load(&mut self, global: &str, code: &str) -> Result<(), DynamicError> {
-        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
-        let context: &v8::Context = self.context.borrow();
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Local::new(&scope, &self.context);
+        let scope = &mut v8::ContextScope::new(scope, context);
 
         //Load global
         match DynamicPattern::execute(scope, global) {
@@ -373,23 +369,23 @@ impl DynamicPattern {
         Ok(())
     }
 
-    fn execute(scope: &mut v8::HandleScope, code: &str) -> Result<(), DynamicError> {
+    fn execute(scope: &mut v8::PinScope<'_, '_>, code: &str) -> Result<(), DynamicError> {
         let code = v8::String::new(scope, code).unwrap();
         let script = match v8::Script::compile(scope, code, None) {
             Some(script) => script,
             None => {
                 return Err(DynamicError::CompileError(
                     "I haven't figured out how to extract compilation errors yet".to_string(),
-                ))
+                ));
             }
         };
         //Execute script to load functions into memory
         match script.run(scope) {
-            Some(v) => {}
+            Some(_v) => {}
             None => {
                 return Err(DynamicError::ScriptRunError(
                     "I haven't figured out how to extract run errors yet".to_string(),
-                ))
+                ));
             }
         }
 
@@ -397,14 +393,15 @@ impl DynamicPattern {
     }
 
     fn inject_state(&mut self, state: String) {
-        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
-        let context: &v8::Context = self.context.borrow();
-        let function_global_handle = self.set_state.as_ref().expect("function not loaded");
-        let function: &v8::Function = function_global_handle.borrow();
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Local::new(&scope, &self.context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        let function = v8::Local::new(scope, self.set_state.as_ref().expect("function not loaded"));
         let state = v8::String::new(scope, &state).unwrap().into();
 
-        let mut try_catch = &mut v8::TryCatch::new(scope);
-        let global = context.global(try_catch).into();
+        let try_catch = pin!(v8::TryCatch::new(scope));
+        let mut try_catch = try_catch.init();
+        let global = context.global(&try_catch).into();
         let result = function.call(&mut try_catch, global, &[state]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();
@@ -418,19 +415,19 @@ impl DynamicPattern {
     }
 
     fn extract_state(&mut self) -> Result<String, DynamicError> {
-        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
-        let context: &v8::Context = self.context.borrow();
-        let function_global_handle = self.get_state.as_ref().expect("function not loaded");
-        let function: &v8::Function = function_global_handle.borrow();
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Local::new(&scope, &self.context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        let function = v8::Local::new(scope, self.get_state.as_ref().expect("function not loaded"));
 
-        let mut try_catch = &mut v8::TryCatch::new(scope);
-        let global = context.global(try_catch).into();
+        let try_catch = pin!(v8::TryCatch::new(scope));
+        let mut try_catch = try_catch.init();
+        let global = context.global(&try_catch).into();
         let result = function.call(&mut try_catch, global, &[]);
 
         match result {
             Some(result) => {
-                //result.to_string(scope).unwrap();
-                return Ok(result.to_rust_string_lossy(try_catch));
+                return Ok(result.to_rust_string_lossy(&try_catch));
             }
             None => {
                 let exception = try_catch.exception().unwrap();
@@ -445,17 +442,18 @@ impl DynamicPattern {
     }
 
     fn setup(&mut self, mapping: Vec<pixels::Pixel>) {
-        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
-        let context: &v8::Context = self.context.borrow();
-        let function_global_handle = self.setup.as_ref().expect("function not loaded");
-        let function: &v8::Function = function_global_handle.borrow();
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Local::new(&scope, &self.context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        let function = v8::Local::new(scope, self.setup.as_ref().expect("function not loaded"));
 
         //Serialize mapping
         let serialized_mapping = serde_json::to_string(&mapping).unwrap();
         let mapping = v8::String::new(scope, &serialized_mapping).unwrap().into();
 
-        let mut try_catch = &mut v8::TryCatch::new(scope);
-        let global = context.global(try_catch).into();
+        let try_catch = pin!(v8::TryCatch::new(scope));
+        let mut try_catch = try_catch.init();
+        let global = context.global(&try_catch).into();
         let result = function.call(&mut try_catch, global, &[mapping]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();
@@ -472,20 +470,24 @@ impl DynamicPattern {
         &mut self,
         frame: Arc<producer::Frame>,
     ) -> Result<Vec<vecmath::Vector4<f64>>, DynamicError> {
-        let scope = &mut v8::HandleScope::with_context(&mut self.isolate, &self.context);
-        let context: &v8::Context = self.context.borrow();
-        let function_global_handle = self.render.as_ref().expect("function not loaded");
-        let function: &v8::Function = function_global_handle.borrow();
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Local::new(&scope, &self.context);
+        let scope = &mut v8::ContextScope::new(scope, context);
+        let function = v8::Local::new(scope, self.render.as_ref().expect("function not loaded"));
 
-        let res = match serde_v8::to_v8(scope, frame) {
-            Ok(res) => res,
+        // Serialize frame to JSON and parse it in V8
+        let json_str = match serde_json::to_string(&*frame) {
+            Ok(s) => s,
             Err(e) => {
                 return Err(DynamicError::SerializeError(e.to_string()));
             }
         };
+        let v8_str = v8::String::new(scope, &json_str).unwrap();
+        let res = v8::json::parse(scope, v8_str.into()).unwrap();
 
-        let mut try_catch = &mut v8::TryCatch::new(scope);
-        let global = context.global(try_catch).into();
+        let try_catch = pin!(v8::TryCatch::new(scope));
+        let mut try_catch = try_catch.init();
+        let global = context.global(&try_catch).into();
         let result = function.call(&mut try_catch, global, &[res]);
         if result.is_none() {
             let exception = try_catch.exception().unwrap();
@@ -498,33 +500,24 @@ impl DynamicPattern {
         }
 
         let res = v8::Local::<v8::Float64Array>::try_from(result.unwrap()).unwrap();
-        let backing = res.buffer(try_catch).unwrap().get_backing_store();
+        let data_ptr = res.data();
+        let byte_len = res.byte_length();
         let slice: &[f64] = unsafe {
-            let ptr = backing.data().offset(res.byte_offset() as isize);
-            let len = res.byte_length();
-            std::slice::from_raw_parts(ptr as *const f64, len / std::mem::size_of::<f64>())
+            std::slice::from_raw_parts(
+                data_ptr as *const f64,
+                byte_len / std::mem::size_of::<f64>(),
+            )
         };
-
-        //The safe one ?
-        // let mut v = vec![0.0f64; res.byte_length() / std::mem::size_of::<f64>()];
-        // let _copied = unsafe {
-        //     let ptr = v.as_mut_ptr();
-        //     let slice = std::slice::from_raw_parts_mut(
-        //         ptr as *mut u8,
-        //         v.len() * std::mem::size_of::<f64>(),
-        //     );
-        //     res.copy_contents(slice)
-        // };
 
         Ok(slice.chunks(4).map(|s| [s[0], s[1], s[2], s[3]]).collect())
     }
 
     fn bind_function(
-        scope: &mut v8::HandleScope,
-        context: &rusty_v8::Context,
+        scope: &mut v8::PinScope<'_, '_>,
+        context: v8::Local<v8::Context>,
         name: &str,
     ) -> Option<v8::Global<v8::Function>> {
-        let fn_name = v8::String::new(scope, &name).unwrap();
+        let fn_name = v8::String::new(scope, name).unwrap();
         let fn_value = context
             .global(scope)
             .get(scope, fn_name.into())

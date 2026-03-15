@@ -1,4 +1,4 @@
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use log::{error, info, warn};
 use pretty_env_logger;
 use std::env;
@@ -13,8 +13,7 @@ mod apa;
 
 mod util;
 
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 struct Opts {
     #[clap(short, long, default_value = "0.0.0.0:7890")]
     listen: String,
@@ -49,7 +48,7 @@ async fn process_socket(
 
 #[tokio::main]
 async fn main() {
-    env::set_var("RUST_LOG", "debug");
+    unsafe { env::set_var("RUST_LOG", "debug") };
     pretty_env_logger::init();
     let opts: Opts = Opts::parse();
 

@@ -12,7 +12,7 @@ mod producer;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use log::error;
 use pretty_env_logger;
 use std::env;
@@ -20,12 +20,11 @@ use std::thread;
 
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::oneshot;
 use tokio::sync::Mutex;
+use tokio::sync::oneshot;
 use tokio::task;
 
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 struct Opts {
     /// Sets a custom config file. Could have been an Option<T> with no default too
     #[clap(short, long, default_value = "files/config.json")]
@@ -45,7 +44,7 @@ fn main() {
 }
 
 pub async fn bootstrap() {
-    env::set_var("RUST_LOG", "debug");
+    unsafe { env::set_var("RUST_LOG", "debug") };
     pretty_env_logger::init();
 
     let opts: Opts = Opts::parse();

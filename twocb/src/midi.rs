@@ -8,7 +8,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::Mutex;
 mod featuremap;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub struct MidiSurface {
     surface_mapping: midimapper::Mapping,

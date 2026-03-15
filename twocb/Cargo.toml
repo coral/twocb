@@ -2,40 +2,35 @@
 name = "twocb"
 version = "0.1.0"
 authors = ["coral <jonas@jonasbengtson.se>"]
-edition = "2018"
+edition = "2024"
 license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-actix-web = "4.0.0-beta.7"
-anyhow = "1.0.40"
-atomic-counter = "1.0.1"
-aubio = "0.2.1"
-clap = "3.0.0-beta.2"
-cpal = "0.13.3"
-crossbeam = "0.8.0"
-crossbeam-channel = "0.5.1"
-futures = "0.3.15"
-glob = "0.3.0"
-lazy_static = "1.4.0"
-log = "0.4.11"
-notify = { version = "5.0.0-pre.10"}
-pretty_env_logger = "0.4.0"
-ringbuf = "0.2.3"
-rustchord = "0.4.0"
-rusty_v8 = "0.23.0"
-serde = { version = "1.0.126", features = ["derive", "rc"] }
-serde_derive = "1.0.126"
-serde_json = "1.0.64"
-serde_v8 = "0.6.0"
-sled = "0.34.6"
-tokio = { version = "1.7.0", features = ["full"] }
-vecmath = "1.0.0"
-zeroconf = "0.7.1"
-strum = { version = "0.21", features = ["derive"] }
-strum_macros = "0.21"
-midir = "0.7.0"
-async-trait = "0.1.50"
-thiserror = "1.0.25"
+actix-web = "4.13"
+anyhow = "1.0"
+atomic-counter = "1.0"
+aubio = { version = "0.2.1", features = ["bindgen"] }
+clap = { version = "4.6", features = ["derive"] }
+cpal = "0.17"
+crossbeam = "0.8"
+crossbeam-channel = "0.5"
+futures = "0.3"
+glob = "0.3"
+lazy_static = "1.5"
+log = "0.4"
+notify = "8.0"
+pretty_env_logger = "0.5"
+rustchord = "0.6.0"
+v8 = "146"
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_derive = "1.0"
+serde_json = "1.0"
+sled = "0.34"
+tokio = { version = "1.50", features = ["full"] }
+vecmath = "1.0"
+strum = { version = "0.28", features = ["derive"] }
+strum_macros = "0.28"
+midir = "0.10"
+async-trait = "0.1"
+thiserror = "2.0"
 midimapper = { git = "https://github.com/coral/midimapper.git" }
