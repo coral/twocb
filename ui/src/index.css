@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #0a0a0a;
+  --color-surface-1: #141414;
+  --color-surface-2: #1e1e1e;
+  --color-surface-3: #2a2a2a;
+  --color-border: #333;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+}
+
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* Monaco overrides */
+.monaco-editor .margin { background: transparent !important; }

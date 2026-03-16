@@ -10,6 +10,8 @@ mod world_state;
 mod output;
 mod pixels;
 mod producer;
+mod rtc;
+mod ws;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
@@ -17,13 +19,13 @@ use clap::Parser;
 use log::error;
 use pretty_env_logger;
 use std::env;
-use std::thread;
-
-use std::str::FromStr;
 use std::sync::Arc;
+use std::thread;
 use tokio::sync::Mutex;
-use tokio::sync::oneshot;
+use tokio::sync::{broadcast, oneshot};
 use tokio::task;
+
+use rtc::{PeerManager, PixelBroadcast};
 
 #[derive(Parser)]
 struct Opts {
@@ -39,7 +41,6 @@ fn main() {
         .build()
         .unwrap()
         .block_on(async move {
-            //tokio::spawn(async move { order(order_db).await });
             bootstrap().await;
         });
 }
@@ -77,33 +78,48 @@ pub async fn bootstrap() {
     controller::Controller::watch_state_changes(db.clone(), compositor.clone());
 
     let ctrl = Arc::new(tokio::sync::Mutex::new(ctrl));
-    //controller::Controller::watch_layer_changes(db.clone(), denis);
+
+    // WebRTC pixel broadcast
+    let pixel_broadcast = PixelBroadcast::new();
+    let peer_manager = Arc::new(Mutex::new(PeerManager::new()));
+
+    // State notification channel for WebSocket
+    let (state_tx, _) = broadcast::channel::<String>(64);
 
     let api_cfg = cfg.clone();
-    let api_db = db.clone();
-    let api_ctrl = ctrl.clone();
+    let api_state = api::ApiState {
+        db: db.clone(),
+        ctrl: ctrl.clone(),
+        peer_manager: peer_manager.clone(),
+        pixel_broadcast: pixel_broadcast.clone(),
+        state_tx: state_tx.clone(),
+        config: cfg.clone(),
+    };
+
     thread::spawn(move || {
         api::start(
             SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::from_str(&api_cfg.api.host).unwrap()),
                 api_cfg.api.port,
             ),
-            api_db,
-            api_ctrl,
+            api_state,
         )
-        .expect("kek");
+        .expect("API server failed to start");
     });
 
     let prc_cfg = cfg.clone();
     let cmps = compositor.clone();
 
-    run(prc_cfg, cmps, map.clone()).await;
+    run(prc_cfg, cmps, map.clone(), pixel_broadcast).await;
 }
+
+use std::str::FromStr;
 
 pub async fn run(
     cfg: Arc<config::Config>,
     compositor: Arc<Mutex<layers::compositor::Compositor>>,
     mapping: Vec<pixels::Pixel>,
+    pixel_broadcast: PixelBroadcast,
 ) {
     let audiosetting = audio::StreamSetting {
         sample_rate: cfg.audio.sample_rate,
@@ -176,11 +192,20 @@ pub async fn run(
         tokio::join!(prod.start());
     });
 
+    let mut frame_counter: u32 = 0;
+
     loop {
         match framechan.recv().await {
             Ok(frame) => {
                 let rst = compositor.lock().await.render(frame).await;
                 output.write(&rst);
+
+                // Broadcast every 3rd frame to WebRTC peers (~33 FPS)
+                frame_counter = frame_counter.wrapping_add(1);
+                if frame_counter % 3 == 0 {
+                    let packed = PixelBroadcast::pack_frame(frame_counter, &rst);
+                    let _ = pixel_broadcast.pixel_tx.send(Arc::new(packed));
+                }
             }
             Err(e) => {
                 error!("{}", e)
