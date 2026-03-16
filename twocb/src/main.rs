@@ -142,15 +142,26 @@ pub async fn run(
     let mut output = output::OutputManager::new();
 
     //////////DONE WITH SETUP
-    for opc_output in &cfg.endpoints.opc {
-        let mut opc = output::OPCOutput::new(SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(&opc_output.host).unwrap()),
-            opc_output.port as u16,
-        ));
-        match opc.connect().await {
-            Ok(_v) => output.add(Box::new(opc)),
-            Err(v) => {
-                error!("OPC could not connect: {}", v);
+    for ep in &cfg.endpoints {
+        let pixel_count = ep.end - ep.start;
+        match ep.protocol {
+            config::Protocol::Opc => {
+                let addr = SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(&ep.host).unwrap()),
+                    ep.port,
+                );
+                let mut opc = output::OPCOutput::new(addr, pixel_count);
+                match opc.connect().await {
+                    Ok(_) => output.add(Box::new(opc), ep.start, ep.end),
+                    Err(e) => error!("OPC connect failed {}: {}", addr, e),
+                }
+            }
+            config::Protocol::Ddp => {
+                let addr = format!("{}:{}", ep.host, ep.port);
+                match output::DDPOutput::new(&addr, pixel_count) {
+                    Ok(ddp) => output.add(Box::new(ddp), ep.start, ep.end),
+                    Err(e) => error!("DDP init failed {}: {}", addr, e),
+                }
             }
         }
     }

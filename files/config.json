@@ -1,8 +1,8 @@
 {
     "fps": 100.0,
-    "endpoints": {
-        "opc": [{ "host": "45.154.31.130", "port": 7890 }]
-    },
+    "endpoints": [
+        { "start": 0, "end": 2000, "protocol": "opc", "host": "127.0.0.1", "port": 7890 }
+    ],
     "audio": {
         "sampleRate": 48000,
         "bufferSize": 1024,

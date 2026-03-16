@@ -43,13 +43,13 @@ impl output::Adapter for OPCOutput {
 }
 
 impl OPCOutput {
-    pub fn new(addr: SocketAddr) -> OPCOutput {
+    pub fn new(addr: SocketAddr, pixel_count: usize) -> OPCOutput {
         return OPCOutput {
             addr,
             send_fails: 0,
             reconnection_attempts: 0,
             stream: None,
-            buffer: vec![0; (2000 * 3) + 4],
+            buffer: Vec::with_capacity((pixel_count * 3) + 4),
         };
     }
 

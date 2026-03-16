@@ -6,24 +6,27 @@ use std::sync::Arc;
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub fps: f64,
-    pub endpoints: Endpoints,
+    pub endpoints: Vec<Endpoint>,
     pub audio: Audio,
     pub database: String,
     pub api: Api,
     pub mapping: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Endpoints {
-    pub opc: Vec<Opc>,
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Protocol {
+    Opc,
+    Ddp,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Opc {
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Endpoint {
+    pub start: usize,
+    pub end: usize,
+    pub protocol: Protocol,
     pub host: String,
-    pub port: i64,
+    pub port: u16,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
