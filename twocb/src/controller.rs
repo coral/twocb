@@ -1,4 +1,5 @@
 use crate::data;
+use crate::engines::params::{ParamValue, PatternParam};
 use crate::engines::{DynamicEngine, Engine, Pattern, RSEngine};
 use crate::layers::{DeLink, EngineType, Link, Step, compositor};
 use crate::pixels;
@@ -38,7 +39,7 @@ impl Controller {
     }
 
     pub async fn bootstrap(&mut self) {
-        let order = self.lookup_order().await.unwrap();
+        let order = self.lookup_order().await.unwrap_or_default();
         for (index, entry) in order.iter().enumerate() {
             let result = self.data.links.get(&entry.name).unwrap();
             match result {
@@ -163,6 +164,32 @@ impl Controller {
             }
             None => {
                 error!("could not find shit");
+            }
+        }
+    }
+
+    pub async fn get_pattern_params(&self, pattern_name: &str) -> Vec<PatternParam> {
+        let comp = self.compositor.lock().await;
+        for la in &comp.links {
+            let link = la.link.lock().unwrap();
+            for step in &link.steps {
+                if step.pattern.name() == pattern_name {
+                    return step.pattern.params();
+                }
+            }
+        }
+        Vec::new()
+    }
+
+    pub async fn set_pattern_param(&self, pattern_name: &str, param_name: &str, value: ParamValue) {
+        let comp = self.compositor.lock().await;
+        for la in &comp.links {
+            let mut link = la.link.lock().unwrap();
+            for step in &mut link.steps {
+                if step.pattern.name() == pattern_name {
+                    step.pattern.set_param(param_name, value);
+                    return;
+                }
             }
         }
     }

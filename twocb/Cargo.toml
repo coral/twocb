@@ -30,7 +30,6 @@ tokio = { version = "1.50", features = ["full"] }
 vecmath = "1.0"
 strum = { version = "0.28", features = ["derive"] }
 strum_macros = "0.28"
-midir = "0.10"
 async-trait = "0.1"
 thiserror = "2.0"
-midimapper = { git = "https://github.com/coral/midimapper.git" }
+ts-rs = { version = "10", features = ["serde-compat"] }

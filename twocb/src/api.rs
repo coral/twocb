@@ -1,5 +1,6 @@
 use crate::controller;
 use crate::data;
+use crate::engines::params::ParamValue;
 use crate::layers;
 use actix_web::{App, HttpResponse, HttpServer, Responder, delete, get, post, web};
 use serde::Deserialize;
@@ -86,6 +87,39 @@ async fn set_opacity(
     HttpResponse::Ok().body("Yesssss")
 }
 
+#[derive(Deserialize)]
+struct PatternInfo {
+    name: String,
+}
+
+#[get("/patterns/{name}/params")]
+async fn get_pattern_params(
+    info: web::Path<PatternInfo>,
+    ctrl: web::Data<Arc<Mutex<controller::Controller>>>,
+) -> impl Responder {
+    let params = ctrl.lock().await.get_pattern_params(&info.name).await;
+    HttpResponse::Ok().json(params)
+}
+
+#[derive(Deserialize)]
+struct SetParamInfo {
+    name: String,
+    param: String,
+}
+
+#[post("/patterns/{name}/params/{param}")]
+async fn set_pattern_param(
+    info: web::Path<SetParamInfo>,
+    body: web::Json<ParamValue>,
+    ctrl: web::Data<Arc<Mutex<controller::Controller>>>,
+) -> impl Responder {
+    ctrl.lock()
+        .await
+        .set_pattern_param(&info.name, &info.param, body.into_inner())
+        .await;
+    HttpResponse::Ok().body("ok")
+}
+
 #[actix_web::main]
 pub async fn start(
     socket: SocketAddr,
@@ -103,6 +137,8 @@ pub async fn start(
             .service(add_layer)
             .service(delete_layer)
             .service(set_opacity)
+            .service(get_pattern_params)
+            .service(set_pattern_param)
     })
     .bind(socket)?
     .disable_signals()

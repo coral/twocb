@@ -3,6 +3,9 @@ var _pixelBuffer;
 var state = {};
 var start = new Date().getTime();
 
+// `world` object is created by Rust with native V8 accessors — no JS maintenance needed.
+// See world_state.rs define_world_state! macro for the field definitions.
+
 function _internalRegister() {
     return JSON.stringify(register());
 }
@@ -17,28 +20,29 @@ function _setState(newstate) {
 
 function _setup(nm) {
     _mapping = JSON.parse(nm);
-
-    _pixelBuffer = new Float64Array(_mapping.length * 4);
+    // _pixelBuffer is now set by Rust (shared memory) - but we still
+    // allocate a fallback in case it hasn't been set yet
+    if (typeof _pixelBuffer === "undefined" || _pixelBuffer === null) {
+        _pixelBuffer = new Float64Array(_mapping.length * 4);
+    }
 }
 
-function _internalRender(frame) {
+function _internalRender() {
     if (typeof beforeRender === "function") {
-        let delta = new Date().getTime();
-        beforeRender(frame, start - delta);
-        start = delta;
+        beforeRender(world, world.delta);
     }
 
     if (typeof render3D === "function") {
-        _mapping.forEach((m) => {
+        _mapping.forEach(function(m) {
             render3D(m.I, m.O[0], m.O[1], m.O[2]);
         });
     } else {
-        _mapping.forEach((m) => {
+        _mapping.forEach(function(m) {
             render(m.I);
         });
     }
 
-    return _pixelBuffer;
+    // No return needed - Rust reads _pixelBuffer directly (zero-copy)
 }
 
 function rgb(index, r, g, b) {
@@ -112,14 +116,12 @@ function square(phase, cycle) {
 }
 
 /// Easy shorthands
-
 let max = Math.max;
 let floor = Math.floor;
 let PI = Math.PI;
 let PI2 = Math.PI2;
 
 //Other (PixelBlaze compat)
-
 function random(max) {
     return Math.random() * max;
 }

@@ -1,3 +1,4 @@
+use crate::engines::params::{ParamValue, PatternParam};
 use crate::producer;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -11,4 +12,10 @@ pub trait Pattern: Send {
 
     fn get_state(&self) -> Vec<u8>;
     fn set_state(&mut self, data: &[u8]);
+
+    fn params(&self) -> Vec<PatternParam> {
+        Vec::new()
+    }
+
+    fn set_param(&mut self, _name: &str, _value: ParamValue) {}
 }

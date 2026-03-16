@@ -11,7 +11,6 @@ pub struct Config {
     pub database: String,
     pub api: Api,
     pub mapping: String,
-    pub control: Control,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -48,14 +47,6 @@ pub struct Tempo {
 pub struct Api {
     pub host: String,
     pub port: u16,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Control {
-    pub surface: String,
-    pub featuremap: String,
-    pub device: u8,
 }
 
 pub fn load_config(path: &str) -> anyhow::Result<Arc<Config>> {
