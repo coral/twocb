@@ -135,15 +135,11 @@ impl WorldStateBuffer {
 
     /// Interpret the struct as a mutable f64 slice (zero-copy).
     pub fn as_f64_slice(&self) -> &[f64] {
-        unsafe {
-            std::slice::from_raw_parts(self as *const Self as *const f64, BUFFER_LEN)
-        }
+        unsafe { std::slice::from_raw_parts(self as *const Self as *const f64, BUFFER_LEN) }
     }
 
     pub fn as_f64_slice_mut(&mut self) -> &mut [f64] {
-        unsafe {
-            std::slice::from_raw_parts_mut(self as *mut Self as *mut f64, BUFFER_LEN)
-        }
+        unsafe { std::slice::from_raw_parts_mut(self as *mut Self as *mut f64, BUFFER_LEN) }
     }
 }
 
@@ -157,9 +153,7 @@ fn world_f64_getter(
     args: v8::PropertyCallbackArguments<'_>,
     mut rv: v8::ReturnValue<v8::Value>,
 ) {
-    let ext = unsafe {
-        v8::Local::<v8::External>::cast_unchecked(args.data())
-    };
+    let ext = unsafe { v8::Local::<v8::External>::cast_unchecked(args.data()) };
     let value = unsafe { *(ext.value() as *const f64) };
     rv.set(v8::Number::new(scope, value).into());
 }
@@ -172,9 +166,7 @@ pub fn colorchord_getter(
     _args: v8::PropertyCallbackArguments<'_>,
     mut rv: v8::ReturnValue<v8::Value>,
 ) {
-    let ext = unsafe {
-        v8::Local::<v8::External>::cast_unchecked(_args.data())
-    };
+    let ext = unsafe { v8::Local::<v8::External>::cast_unchecked(_args.data()) };
     let buf = unsafe { &*(ext.value() as *const WorldStateBuffer) };
 
     let count = buf.note_count as usize;
@@ -244,7 +236,5 @@ pub struct NoteState {
 
 // Compile-time check that BUFFER_LEN matches the struct size
 const _: () = {
-    assert!(
-        std::mem::size_of::<WorldStateBuffer>() == BUFFER_LEN * std::mem::size_of::<f64>()
-    );
+    assert!(std::mem::size_of::<WorldStateBuffer>() == BUFFER_LEN * std::mem::size_of::<f64>());
 };

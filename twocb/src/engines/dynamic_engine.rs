@@ -1,8 +1,8 @@
 use crate::engines;
-use crate::engines::params::{ParamKind, ParamValue, PatternParam, PARAM_PREFIXES};
+use crate::engines::params::{PARAM_PREFIXES, ParamKind, ParamValue, PatternParam};
 use crate::pixels;
 use crate::producer;
-use crate::world_state::{self, WorldStateBuffer, BUFFER_LEN, MAX_NOTES};
+use crate::world_state::{self, BUFFER_LEN, MAX_NOTES, WorldStateBuffer};
 use crossbeam_channel::select;
 use glob::glob;
 use log::{error, info, warn};
@@ -62,8 +62,8 @@ impl DynamicEngine {
         global_scope: &str,
         mapping: Vec<pixels::Pixel>,
     ) -> DynamicEngine {
-        let code =
-            fs::read_to_string(&global_scope).expect("Something went wrong reading the global.js file");
+        let code = fs::read_to_string(&global_scope)
+            .expect("Something went wrong reading the global.js file");
 
         return DynamicEngine {
             pattern_folder: pattern_folder.to_string(),
@@ -153,25 +153,28 @@ macro_rules! extract_v8_error {
 struct DynamicHolder {
     patternname: String,
 
-    frame_channel: crossbeam_channel::Sender<Arc<producer::Frame>>,
-    result_channel: crossbeam_channel::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
-    cancel_channel: crossbeam_channel::Sender<bool>,
-
-    setstate_channel: crossbeam_channel::Sender<String>,
-    getstate_channel: crossbeam_channel::Receiver<Result<String, DynamicError>>,
-    reqstate_channel: crossbeam_channel::Sender<bool>,
-
-    param_query_tx: crossbeam_channel::Sender<ParamQuery>,
-    param_result_rx: crossbeam_channel::Receiver<Vec<PatternParam>>,
+    frame_tx: crossbeam_channel::Sender<Arc<producer::Frame>>,
+    result_rx: crossbeam_channel::Receiver<Result<Vec<vecmath::Vector4<f64>>, DynamicError>>,
+    cmd_tx: crossbeam_channel::Sender<Command>,
 
     _watcher: notify::RecommendedWatcher,
 
     pixel_count: usize,
 }
 
-enum ParamQuery {
-    GetAll,
-    Set(String, ParamValue),
+enum Command {
+    SetState(String),
+    GetState {
+        reply: crossbeam_channel::Sender<Result<String, DynamicError>>,
+    },
+    GetParams {
+        reply: crossbeam_channel::Sender<Vec<PatternParam>>,
+    },
+    SetParam {
+        name: String,
+        value: ParamValue,
+        reply: crossbeam_channel::Sender<Vec<PatternParam>>,
+    },
 }
 
 impl engines::pattern::Pattern for DynamicHolder {
@@ -180,14 +183,14 @@ impl engines::pattern::Pattern for DynamicHolder {
     }
 
     fn process(&mut self, frame: Arc<producer::Frame>) -> Vec<vecmath::Vector4<f64>> {
-        match self.frame_channel.send(frame) {
+        match self.frame_tx.send(frame) {
             Err(e) => {
                 error!("Could not send frame to dynamic pattern: {}", e);
             }
             _ => {}
         }
 
-        match self.result_channel.recv() {
+        match self.result_rx.recv() {
             Ok(v) => match v {
                 Ok(output) => output,
                 Err(_e) => {
@@ -201,55 +204,52 @@ impl engines::pattern::Pattern for DynamicHolder {
     }
 
     fn get_state(&self) -> Vec<u8> {
-        self.reqstate_channel.send(true);
-
-        match self.getstate_channel.recv() {
-            Ok(v) => match v {
-                Ok(state) => {
-                    return state.as_bytes().to_vec();
-                }
-                Err(e) => {
-                    error!("Get state error: {}", e);
-                    return "{}".as_bytes().to_vec();
-                }
-            },
-            _ => {}
+        let (reply_tx, reply_rx) = crossbeam_channel::bounded(1);
+        if self
+            .cmd_tx
+            .send(Command::GetState { reply: reply_tx })
+            .is_err()
+        {
+            return "{}".as_bytes().to_vec();
         }
-        return "{}".as_bytes().to_vec();
+        match reply_rx.recv() {
+            Ok(Ok(state)) => state.as_bytes().to_vec(),
+            Ok(Err(e)) => {
+                error!("Get state error: {}", e);
+                "{}".as_bytes().to_vec()
+            }
+            Err(_) => "{}".as_bytes().to_vec(),
+        }
     }
 
     fn set_state(&mut self, data: &[u8]) {
         let state = std::str::from_utf8(&data).unwrap().to_string();
-        match self.setstate_channel.send(state) {
-            Err(e) => {
-                error!("Could not send state to dynamic pattern: {}", e);
-            }
-            _ => {}
+        if let Err(e) = self.cmd_tx.send(Command::SetState(state)) {
+            error!("Could not send state to dynamic pattern: {}", e);
         }
     }
 
     fn params(&self) -> Vec<PatternParam> {
-        match self.param_query_tx.send(ParamQuery::GetAll) {
-            Ok(_) => match self.param_result_rx.recv() {
-                Ok(params) => params,
-                Err(_) => Vec::new(),
-            },
-            Err(_) => Vec::new(),
+        let (reply_tx, reply_rx) = crossbeam_channel::bounded(1);
+        if self
+            .cmd_tx
+            .send(Command::GetParams { reply: reply_tx })
+            .is_err()
+        {
+            return Vec::new();
         }
+        reply_rx.recv().unwrap_or_default()
     }
 
     fn set_param(&mut self, name: &str, value: ParamValue) {
-        let _ = self
-            .param_query_tx
-            .send(ParamQuery::Set(name.to_string(), value));
+        let (reply_tx, reply_rx) = crossbeam_channel::bounded(1);
+        let _ = self.cmd_tx.send(Command::SetParam {
+            name: name.to_string(),
+            value,
+            reply: reply_tx,
+        });
         // Consume the response to keep channels in sync
-        let _ = self.param_result_rx.recv();
-    }
-}
-
-impl Drop for DynamicHolder {
-    fn drop(&mut self) {
-        self.cancel_channel.send(true).unwrap();
+        let _ = reply_rx.recv();
     }
 }
 
@@ -297,17 +297,10 @@ impl DynamicPattern {
 
         let pixel_count = mapping.len();
 
-        let (frame_tx, frame_rx) = crossbeam_channel::unbounded();
-        let (result_tx, result_rx) = crossbeam_channel::unbounded();
-        let (cancel_tx, cancel_rx) = crossbeam_channel::unbounded();
+        let (frame_tx, frame_rx) = crossbeam_channel::bounded(1);
+        let (result_tx, result_rx) = crossbeam_channel::bounded(1);
+        let (cmd_tx, cmd_rx) = crossbeam_channel::unbounded();
         let (reload_tx, reload_rx) = crossbeam_channel::unbounded();
-
-        let (setstate_tx, setstate_rx) = crossbeam_channel::unbounded();
-        let (getstate_tx, getstate_rx) = crossbeam_channel::unbounded();
-        let (reqstate_tx, reqstate_rx) = crossbeam_channel::unbounded();
-
-        let (param_query_tx, param_query_rx) = crossbeam_channel::unbounded::<ParamQuery>();
-        let (param_result_tx, param_result_rx) = crossbeam_channel::unbounded::<Vec<PatternParam>>();
 
         let mut watcher: notify::RecommendedWatcher =
             notify::recommended_watcher(move |res| match res {
@@ -373,7 +366,7 @@ impl DynamicPattern {
 
                 loop {
                     select! {
-                        // Render frame
+                        // Render frame (hot path)
                         recv(frame_rx) -> frame => {
                             match frame {
                                 Ok(frame) => match d.dynamic_process(frame) {
@@ -394,64 +387,37 @@ impl DynamicPattern {
                                         // Wait for reload before retrying
                                         match reload_rx.recv() {
                                             Ok(_) => break,
-                                            _ => {}
+                                            _ => return,
                                         }
                                     }
                                 },
-                                Err(e) => {
-                                    error!("Dynamic pattern recieve error: {}", e);
-                                }
+                                Err(_) => return, // sender dropped, shut down
                             }
                         },
 
-                        // Cancel (kill pattern)
-                        recv(cancel_rx) -> cancel => {
-                            match cancel {
-                                Ok(_) => {
-                                    return;
+                        // Control commands
+                        recv(cmd_rx) -> cmd => {
+                            match cmd {
+                                Ok(Command::SetState(state)) => {
+                                    d.inject_state(state);
                                 }
-                                _ => {}
-                            }
-                        }
-
-                        // Set state
-                        recv(setstate_rx) -> setstate => {
-                            match setstate {
-                                Ok(state) => d.inject_state(state),
-                                _ => {}
-                            }
-                        }
-
-                        // Request for internal state
-                        recv(reqstate_rx) -> reqstate => {
-                            match reqstate {
-                                Ok(_) => {
-                                    match d.extract_state() {
-                                        Ok(state) => {
-                                            getstate_tx.send(Ok(state));
-                                        },
-                                        Err(e) => {
-                                            getstate_tx.send(Err(DynamicError::StateError(e.to_string())));
-                                        }
-                                    }
-                                },
-                                _ => {}
-                            }
-                        }
-
-                        // Parameter query
-                        recv(param_query_rx) -> query => {
-                            match query {
-                                Ok(ParamQuery::GetAll) => {
+                                Ok(Command::GetState { reply }) => {
+                                    let result = match d.extract_state() {
+                                        Ok(state) => Ok(state),
+                                        Err(e) => Err(DynamicError::StateError(e.to_string())),
+                                    };
+                                    let _ = reply.send(result);
+                                }
+                                Ok(Command::GetParams { reply }) => {
                                     let params: Vec<PatternParam> = d.params.iter().map(|p| p.info.clone()).collect();
-                                    let _ = param_result_tx.send(params);
+                                    let _ = reply.send(params);
                                 }
-                                Ok(ParamQuery::Set(name, value)) => {
+                                Ok(Command::SetParam { name, value, reply }) => {
                                     d.set_param_value(&name, &value);
                                     let params: Vec<PatternParam> = d.params.iter().map(|p| p.info.clone()).collect();
-                                    let _ = param_result_tx.send(params);
+                                    let _ = reply.send(params);
                                 }
-                                _ => {}
+                                Err(_) => return, // sender dropped, shut down
                             }
                         }
 
@@ -480,14 +446,9 @@ impl DynamicPattern {
 
         return Ok(DynamicHolder {
             patternname,
-            frame_channel: frame_tx,
-            result_channel: result_rx,
-            cancel_channel: cancel_tx,
-            setstate_channel: setstate_tx,
-            getstate_channel: getstate_rx,
-            reqstate_channel: reqstate_tx,
-            param_query_tx,
-            param_result_rx,
+            frame_tx,
+            result_rx,
+            cmd_tx,
             _watcher: watcher,
             pixel_count,
         });
@@ -591,8 +552,7 @@ impl DynamicPattern {
             };
             let backing_store = backing_store.make_shared();
             let ab = v8::ArrayBuffer::with_backing_store(scope, &backing_store);
-            let f64array =
-                v8::Float64Array::new(scope, ab, 0, self.pixel_count * 4).unwrap();
+            let f64array = v8::Float64Array::new(scope, ab, 0, self.pixel_count * 4).unwrap();
             let key = v8::String::new(scope, "_pixelBuffer").unwrap();
             global.set(scope, key.into(), f64array.into());
         }
@@ -632,8 +592,7 @@ impl DynamicPattern {
         let scope = &mut v8::ContextScope::new(scope, context);
         let global = context.global(scope);
 
-        let names = match global
-            .get_own_property_names(scope, v8::GetPropertyNamesArgs::default())
+        let names = match global.get_own_property_names(scope, v8::GetPropertyNamesArgs::default())
         {
             Some(n) => n,
             None => return,
@@ -643,10 +602,7 @@ impl DynamicPattern {
 
         for i in 0..names.length() {
             let key = names.get_index(scope, i).unwrap();
-            let name_str = key
-                .to_string(scope)
-                .unwrap()
-                .to_rust_string_lossy(scope);
+            let name_str = key.to_string(scope).unwrap().to_rust_string_lossy(scope);
 
             for (prefix, kind) in PARAM_PREFIXES {
                 if name_str.starts_with(prefix) && name_str.len() > prefix.len() {
